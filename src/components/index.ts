@@ -1,6 +1,7 @@
 export { Avatar } from './Avatar';
 export { Button } from './Button';
 export { Card } from './Card';
+export { EmbeddingMap } from './EmbeddingMap';
 export { LabelReviewCard } from './LabelReviewCard';
 export { MessageThread } from './MessageThread';
 export { MetricTile } from './MetricTile';

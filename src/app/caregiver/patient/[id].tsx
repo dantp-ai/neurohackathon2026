@@ -3,7 +3,14 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Avatar, LabelReviewCard, MessageThread, MetricTile, StatusPill } from '@/components';
+import {
+  Avatar,
+  EmbeddingMap,
+  LabelReviewCard,
+  MessageThread,
+  MetricTile,
+  StatusPill,
+} from '@/components';
 import {
   CURRENT_CAREGIVER,
   checkinForEvent,
@@ -11,15 +18,17 @@ import {
   labelForEvent,
   labelsForPatient,
   patientById,
+  segmentsForPatient,
   timelineFor,
 } from '@/mock/data';
 import { CheckinResponseValue, Severity } from '@/types';
 import { colors, radius, spacing, StatusLevel, statusColors, typography } from '@/theme';
 import { timeAgo } from '@/utils/time';
 
-type Tab = 'metrics' | 'alerts' | 'messages' | 'labels';
+type Tab = 'metrics' | 'map' | 'alerts' | 'messages' | 'labels';
 const TABS: { key: Tab; label: string }[] = [
   { key: 'metrics', label: 'Metrics' },
+  { key: 'map', label: 'Map' },
   { key: 'alerts', label: 'Alerts' },
   { key: 'messages', label: 'Messages' },
   { key: 'labels', label: 'Labels' },
@@ -95,6 +104,7 @@ export default function PatientDetail() {
       ) : (
         <ScrollView contentContainerStyle={styles.content}>
           {tab === 'metrics' && <MetricsTab patientId={patient.user.id} metrics={patient.metrics} />}
+          {tab === 'map' && <MapTab patientId={patient.user.id} />}
           {tab === 'alerts' && <AlertsTab patientId={patient.user.id} />}
           {tab === 'labels' && <LabelsTab patientId={patient.user.id} />}
         </ScrollView>
@@ -136,6 +146,13 @@ function Sparkbars({ label, values, accent }: { label: string; values: number[];
       </View>
     </View>
   );
+}
+
+// --- Map tab ---------------------------------------------------------------
+
+function MapTab({ patientId }: { patientId: string }) {
+  const segments = segmentsForPatient(patientId);
+  return <EmbeddingMap segments={segments} />;
 }
 
 // --- Alerts tab ------------------------------------------------------------

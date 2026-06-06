@@ -3,8 +3,7 @@ Seed script: inserts fake users, care relationships, and EEG segments
 (with random 384-dim embeddings) into the local Supabase instance.
 
 Usage:
-    pip install supabase numpy
-    python scripts/seed_eeg.py
+    uv run python scripts/seed_eeg.py
 """
 
 import os
