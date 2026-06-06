@@ -40,6 +40,9 @@ export interface EegSegment {
   attention: number; // 0.0–1.0
   mood: number; // 0.0–1.0
   anomaly_score: number; // 0.0–1.0
+  // 2D UMAP projection of the embedding; null until backend has run UMAP.
+  umap_x: number | null;
+  umap_y: number | null;
   // `embedding` (pgvector) is intentionally omitted — frontend never reads it.
 }
 

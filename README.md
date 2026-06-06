@@ -49,10 +49,16 @@ cp .env.example .env.local
 
 ```bash
 uv run python scripts/seed_eeg.py
+uv run python scripts/compute_umap.py   # 2D projection for the embedding map
 ```
 
-This inserts two patients, two caregivers, and 40 EEG segments per patient
-(20 min recording, ~10% flagged as anomalous) with random 384-dim embeddings.
+`seed_eeg.py` loads the real sub-001 recording from `data/`, chunks it into
+30-second windows, computes per-channel band-power features (delta/theta/alpha/beta/gamma),
+and writes one row per window for both demo patients. The features are zero-padded
+to fit the 384-dim `embedding` column — when the real EEG embedder lands, swap
+that one function. `compute_umap.py` then fits UMAP over those embeddings and
+writes `umap_x`/`umap_y` back per row, which drives the caregiver **Map** tab.
+The seed is idempotent — running it twice replaces the existing segments.
 
 Demo credentials (password: `demo1234`):
 

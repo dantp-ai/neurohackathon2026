@@ -55,7 +55,7 @@ export const PATIENTS: PatientSummary[] = [
     relationship: 'Patient',
   },
   {
-    user: { id: 'p2', role: 'patient', display_name: 'Arthur Lee', avatar_url: null },
+    user: { id: 'p2', role: 'patient', display_name: 'Harold Müller', avatar_url: null },
     status: 'good',
     metrics: { fatigue: 22, attention: 81, mood: 76 },
     lastUpdated: minutesAgo(11),
@@ -265,3 +265,7 @@ export const messagesForThread = (patientId: string, caregiverId: string): Messa
   MESSAGES.filter((m) => m.patient_id === patientId && m.caregiver_id === caregiverId).sort(
     (a, b) => +new Date(a.created_at) - +new Date(b.created_at),
   );
+
+// EEG segments are no longer mocked — the Map tab reads them straight from
+// Supabase (see src/hooks/useEegSegments). The seed script in scripts/seed_eeg.py
+// derives real features + embeddings from data/sub-001_task-eyesclosed_eeg.set.
