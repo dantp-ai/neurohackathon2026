@@ -102,9 +102,9 @@ export default function PatientDetail() {
       {/* Content */}
       {tab === 'messages' ? (
         <MessageThread
-          patientId={patient.user.id}
-          caregiverId={CURRENT_CAREGIVER.id}
-          currentUserId={CURRENT_CAREGIVER.id}
+          patientName={patient.user.display_name}
+          caregiverName={CURRENT_CAREGIVER.display_name}
+          senderRole="caregiver"
         />
       ) : (
         <ScrollView contentContainerStyle={styles.content}>
