@@ -30,15 +30,31 @@ export interface CareRelationship {
 // Backend writes, frontend reads
 // ---------------------------------------------------------------------------
 
+/**
+ * Relative spectral power per EEG frequency band (fractions that sum to ~1).
+ * Streamed alongside the computed metrics so the frontend can render a live
+ * spectrum without owning any metric formula (those stay backend-side).
+ */
+export interface BandPowers {
+  delta: number; // 1–4 Hz   (deep slow waves)
+  theta: number; // 4–8 Hz   (drowsiness)
+  alpha: number; // 8–12 Hz  (relaxed wakefulness)
+  beta: number; // 12–30 Hz  (active focus)
+  gamma: number; // 30+ Hz   (high-level processing)
+}
+
 export interface EegSegment {
   id: string;
   patient_id: string;
   device_id: string;
   timestamp_start: string;
   duration_s: number;
-  fatigue: number; // 0.0–1.0
-  attention: number; // 0.0–1.0
-  mood: number; // 0.0–1.0
+  // Continuous metrics — backend-computed from band powers (Track A), 0.0–1.0.
+  fatigue: number;
+  attention: number;
+  relaxation: number;
+  // Raw band powers (for the spectrum viz).
+  band_powers: BandPowers;
   anomaly_score: number; // 0.0–1.0
   // `embedding` (pgvector) is intentionally omitted — frontend never reads it.
 }
@@ -140,5 +156,5 @@ export interface PushToken {
 export interface WellnessMetrics {
   fatigue: number; // 0–100
   attention: number; // 0–100
-  mood: number; // 0–100
+  relaxation: number; // 0–100
 }

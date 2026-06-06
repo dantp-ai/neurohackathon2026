@@ -3,8 +3,17 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Avatar, LabelReviewCard, MessageThread, MetricTile, StatusPill } from '@/components';
 import {
+  Avatar,
+  BandPowerBars,
+  Card,
+  LabelReviewCard,
+  MessageThread,
+  MetricTile,
+  StatusPill,
+} from '@/components';
+import {
+  bandPowersFor,
   CURRENT_CAREGIVER,
   checkinForEvent,
   eventsForPatient,
@@ -13,6 +22,7 @@ import {
   patientById,
   timelineFor,
 } from '@/mock/data';
+import { WellnessMetrics } from '@/types';
 import { CheckinResponseValue, Severity } from '@/types';
 import { colors, radius, spacing, StatusLevel, statusColors, typography } from '@/theme';
 import { timeAgo } from '@/utils/time';
@@ -105,19 +115,25 @@ export default function PatientDetail() {
 
 // --- Metrics tab -----------------------------------------------------------
 
-function MetricsTab({ patientId, metrics }: { patientId: string; metrics: { fatigue: number; attention: number; mood: number } }) {
+function MetricsTab({ patientId, metrics }: { patientId: string; metrics: WellnessMetrics }) {
   const series = timelineFor(patientId);
   return (
     <View style={{ gap: spacing.lg }}>
       <View style={styles.metricsRow}>
         <MetricTile label="Fatigue" value={metrics.fatigue} accent={colors.fatigue} />
         <MetricTile label="Attention" value={metrics.attention} accent={colors.attention} />
-        <MetricTile label="Mood" value={metrics.mood} accent={colors.mood} />
+        <MetricTile label="Relaxation" value={metrics.relaxation} accent={colors.relaxation} />
       </View>
+
+      <Card style={{ gap: spacing.md }}>
+        <Text style={styles.cardTitle}>Frequency bands</Text>
+        <BandPowerBars powers={bandPowersFor(patientId)} />
+      </Card>
+
       <Text style={styles.sectionTitle}>Last 12 hours</Text>
       <Sparkbars label="Fatigue" values={series.map((p) => p.fatigue)} accent={colors.fatigue} />
       <Sparkbars label="Attention" values={series.map((p) => p.attention)} accent={colors.attention} />
-      <Sparkbars label="Mood" values={series.map((p) => p.mood)} accent={colors.mood} />
+      <Sparkbars label="Relaxation" values={series.map((p) => p.relaxation)} accent={colors.relaxation} />
     </View>
   );
 }
@@ -212,6 +228,7 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg },
   metricsRow: { flexDirection: 'row', gap: spacing.md },
   sectionTitle: { ...typography.heading, color: colors.text },
+  cardTitle: { ...typography.bodyStrong, color: colors.text },
   empty: { ...typography.body, color: colors.textMuted },
   spark: { gap: spacing.sm },
   sparkLabel: { ...typography.label, color: colors.textMuted },

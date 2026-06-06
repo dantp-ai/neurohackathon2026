@@ -9,6 +9,7 @@
 import { StatusLevel } from '@/theme';
 import {
   ActivityLog,
+  BandPowers,
   CheckinResponse,
   Label,
   Message,
@@ -49,7 +50,7 @@ export const PATIENTS: PatientSummary[] = [
   {
     user: { id: 'p1', role: 'patient', display_name: 'Margaret Chen', avatar_url: null },
     status: 'warn',
-    metrics: { fatigue: 68, attention: 54, mood: 47 },
+    metrics: { fatigue: 68, attention: 54, relaxation: 42 },
     lastUpdated: minutesAgo(3),
     hasUnacknowledgedAlert: true,
     relationship: 'Patient',
@@ -57,7 +58,7 @@ export const PATIENTS: PatientSummary[] = [
   {
     user: { id: 'p2', role: 'patient', display_name: 'Arthur Lee', avatar_url: null },
     status: 'good',
-    metrics: { fatigue: 22, attention: 81, mood: 76 },
+    metrics: { fatigue: 22, attention: 81, relaxation: 58 },
     lastUpdated: minutesAgo(11),
     hasUnacknowledgedAlert: false,
     relationship: 'Patient',
@@ -65,7 +66,7 @@ export const PATIENTS: PatientSummary[] = [
   {
     user: { id: 'p3', role: 'patient', display_name: 'Sofia Rossi', avatar_url: null },
     status: 'bad',
-    metrics: { fatigue: 84, attention: 38, mood: 31 },
+    metrics: { fatigue: 84, attention: 38, relaxation: 30 },
     lastUpdated: minutesAgo(1),
     hasUnacknowledgedAlert: true,
     relationship: 'Patient',
@@ -95,12 +96,37 @@ export const timelineFor = (patientId: string): TimelinePoint[] => {
       t: hoursAgo(11 - i),
       fatigue: clamp(50 + wobble + seed * 3),
       attention: clamp(60 - wobble),
-      mood: clamp(55 - wobble / 2),
+      relaxation: clamp(45 + wobble / 2),
     };
   });
 };
 
 const clamp = (n: number) => Math.max(2, Math.min(98, Math.round(n)));
+
+/**
+ * Mock relative band powers for a patient, derived from their displayed metrics
+ * so the spectrum stays coherent with the tiles (fatigue → slow waves up,
+ * attention → beta up, relaxation → alpha up). Backend will stream the real
+ * values; this just keeps the demo self-consistent. Fractions sum to ~1.
+ */
+export const bandPowersFor = (patientId: string): BandPowers => {
+  const m = patientById(patientId)?.metrics ?? { fatigue: 50, attention: 50, relaxation: 50 };
+  const raw = {
+    delta: 0.4 * m.fatigue + 10,
+    theta: 0.6 * m.fatigue + 10,
+    alpha: 0.7 * m.relaxation + 10,
+    beta: 0.8 * m.attention + 10,
+    gamma: 12,
+  };
+  const sum = raw.delta + raw.theta + raw.alpha + raw.beta + raw.gamma;
+  return {
+    delta: raw.delta / sum,
+    theta: raw.theta / sum,
+    alpha: raw.alpha / sum,
+    beta: raw.beta / sum,
+    gamma: raw.gamma / sum,
+  };
+};
 
 // ---------------------------------------------------------------------------
 // Events (anomaly alerts)
