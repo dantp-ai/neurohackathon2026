@@ -25,6 +25,14 @@ import numpy as np
 from .store import TaskStore
 
 
+def _parse_vec(raw):
+    """pgvector comes back from PostgREST as a JSON-ish string or a list."""
+    if isinstance(raw, str):
+        import json
+        raw = json.loads(raw)
+    return np.asarray(raw, dtype=np.float32)
+
+
 class LabelSource:
     """A source of newly-labelled training samples."""
 
@@ -95,8 +103,12 @@ class SupabaseLabelSource(LabelSource):
                 .execute()
             )
             for row in res.data:
-                emb = row["eeg_segments"]["embedding"]
-                out.append((np.asarray(emb, dtype=np.float32), task, str(row[col])))
+                seg = row.get("eeg_segments")
+                if isinstance(seg, list):           # PostgREST may nest as a list
+                    seg = seg[0] if seg else None
+                if not seg or seg.get("embedding") is None:
+                    continue
+                out.append((_parse_vec(seg["embedding"]), task, str(row[col])))
                 self._cursor = max(self._cursor, row["confirmed_at"])
         return out
 

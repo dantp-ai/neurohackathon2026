@@ -31,6 +31,7 @@ from supabase import create_client
 
 from pipeline.band_power import SessionNormalizer, compute_band_powers
 from pipeline.embedding import run_anomaly_detection, run_embedding, set_channel_names
+from pipeline.projector import UmapProjector
 from pipeline.stream import FileStream, LSLStream, SimulatedStream
 
 load_dotenv(Path(__file__).parents[1] / ".env.local")
@@ -69,6 +70,7 @@ def _build_stream(args: argparse.Namespace):
 def run(patient_id: str, device_id: str, stream) -> None:
     sfreq = stream.sfreq
     set_channel_names(stream.channel_names)   # map channels -> 8 brain regions
+    projector = UmapProjector.default()       # live embeddings -> healthy<->dementia map
     buf_capacity = int(EMBED_WINDOW_S * sfreq)
     # Rolling buffer of raw samples; each element is a (n_channels,) row
     buffer: deque[np.ndarray] = deque(maxlen=buf_capacity)
@@ -136,6 +138,9 @@ def run(patient_id: str, device_id: str, stream) -> None:
             "anomaly_score": round(anomaly_score,           3),
             "embedding":     embedding.tolist(),
         }
+        umap_x, umap_y = projector.transform(embedding)
+        if umap_x is not None:
+            segment_row["umap_x"], segment_row["umap_y"] = umap_x, umap_y
         try:
             supabase.table("eeg_segments").insert(segment_row).execute()
         except Exception as exc:
