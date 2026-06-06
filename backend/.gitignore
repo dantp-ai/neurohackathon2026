@@ -5,4 +5,5 @@ task_heads/
 task_heads_synth/
 *.npz
 *.joblib
+*.png
 ds004504/

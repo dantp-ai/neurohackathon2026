@@ -143,7 +143,7 @@ def main():
     ap.add_argument("--task", default="ad_vs_cn", choices=list(TASKS))
     ap.add_argument("--root", default=os.environ.get("DS004504_ROOT", "ds004504"))
     ap.add_argument("--cache", default="emb_ds004504.npz")
-    ap.add_argument("--dim", type=int, default=192)
+    ap.add_argument("--dim", type=int, default=384)
     ap.add_argument("--stride", type=float, default=EPOCH_SECONDS)
     ap.add_argument("--test-frac", type=float, default=0.3)
     ap.add_argument("--seed", type=int, default=0)

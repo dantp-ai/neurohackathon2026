@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import numpy as np
 
-DEFAULT_DIM = 192          # Matryoshka truncation; one of [768, 384, 192, 48, 16]
+DEFAULT_DIM = 384          # Matryoshka truncation; one of [768, 384, 192, 48, 16]
 EPOCH_SECONDS = 30.0       # foundation model's native epoch length
 
 
