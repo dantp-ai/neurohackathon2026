@@ -34,7 +34,9 @@
             "imageWidth": 76
           }
         }
-      ]
+      ],
+      "expo-localization",
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true,
