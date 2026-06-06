@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,11 +11,11 @@ import { colors, radius, spacing, statusColors, typography } from '@/theme';
 
 const SPEEDS = [1, 4, 16];
 
-function stageFor(health: number): { label: string; color: string } {
-  if (health < 0.25) return { label: 'Healthy', color: statusColors.good.fg };
-  if (health < 0.5) return { label: 'Early change', color: statusColors.warn.fg };
-  if (health < 0.75) return { label: 'Cognitive decline', color: statusColors.warn.fg };
-  return { label: 'Dementia-like', color: statusColors.bad.fg };
+function stageFor(health: number): { labelKey: string; color: string } {
+  if (health < 0.25) return { labelKey: 'demo.healthy', color: statusColors.good.fg };
+  if (health < 0.5) return { labelKey: 'demo.earlyChange', color: statusColors.warn.fg };
+  if (health < 0.75) return { labelKey: 'demo.decline', color: statusColors.warn.fg };
+  return { labelKey: 'demo.dementia', color: statusColors.bad.fg };
 }
 
 /**
@@ -23,6 +24,7 @@ function stageFor(health: number): { label: string; color: string } {
  */
 export default function DemoScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { shown, domain, total, count, playing, speed, setSpeed, play, pause, reset, loading } =
     useStreamedTrajectory('Trajectory Demo');
 
@@ -43,22 +45,17 @@ export default function DemoScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Text style={styles.back}>‹ Back</Text>
+          <Text style={styles.back}>{`‹ ${t('common.back')}`}</Text>
         </Pressable>
-        <Text style={styles.title}>Cognitive decline over time</Text>
-        <Text style={styles.subtitle}>
-          Each point is a 30-second EEG window, embedded live by the foundation model.
-          Watch the brain state drift from healthy to dementia as time accelerates.
-        </Text>
+        <Text style={styles.title}>{t('demo.title')}</Text>
+        <Text style={styles.subtitle}>{t('demo.subtitle')}</Text>
       </View>
 
       <Card style={styles.graphCard}>
         <View style={styles.stageRow}>
           <View style={[styles.stageDot, { backgroundColor: stage.color }]} />
-          <Text style={[styles.stageLabel, { color: stage.color }]}>{stage.label}</Text>
-          <Text style={styles.countLabel}>
-            {count} / {total} windows
-          </Text>
+          <Text style={[styles.stageLabel, { color: stage.color }]}>{t(stage.labelKey)}</Text>
+          <Text style={styles.countLabel}>{t('demo.windows', { count, total })}</Text>
         </View>
 
         <SkiaGraph points={shown} domain={domain} showEdges={false} height={360} />
@@ -70,9 +67,9 @@ export default function DemoScreen() {
 
         {/* color legend */}
         <View style={styles.legend}>
-          <Text style={styles.legendText}>Healthy</Text>
+          <Text style={styles.legendText}>{t('embedding.healthy')}</Text>
           <View style={styles.gradientBar} />
-          <Text style={styles.legendText}>Unhealthy</Text>
+          <Text style={styles.legendText}>{t('embedding.unhealthy')}</Text>
         </View>
       </Card>
 
@@ -81,16 +78,22 @@ export default function DemoScreen() {
         <View style={styles.row}>
           <View style={styles.flex}>
             <Button
-              title={playing ? '❙❙  Pause' : count >= total && total > 0 ? '↺  Replay' : '▶  Play'}
+              title={
+                playing
+                  ? `❙❙  ${t('demo.pause')}`
+                  : count >= total && total > 0
+                    ? `↺  ${t('demo.replay')}`
+                    : `▶  ${t('demo.play')}`
+              }
               onPress={playing ? pause : play}
             />
           </View>
           <View style={styles.flex}>
-            <Button title="Reset" variant="secondary" onPress={reset} />
+            <Button title={t('demo.reset')} variant="secondary" onPress={reset} />
           </View>
         </View>
         <View style={styles.speedRow}>
-          <Text style={styles.speedLabel}>Speed</Text>
+          <Text style={styles.speedLabel}>{t('demo.speed')}</Text>
           {SPEEDS.map((s) => (
             <Pressable
               key={s}
@@ -103,12 +106,8 @@ export default function DemoScreen() {
             </Pressable>
           ))}
         </View>
-        {loading ? <Text style={styles.hint}>Loading trajectory…</Text> : null}
-        {!loading && total === 0 ? (
-          <Text style={styles.hint}>
-            No trajectory data. Run `uv run python scripts/seed_trajectory.py`.
-          </Text>
-        ) : null}
+        {loading ? <Text style={styles.hint}>{t('demo.loading')}</Text> : null}
+        {!loading && total === 0 ? <Text style={styles.hint}>{t('demo.noData')}</Text> : null}
       </View>
     </SafeAreaView>
   );

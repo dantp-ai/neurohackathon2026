@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar, Card, Screen, StatusPill } from '@/components';
@@ -7,26 +8,27 @@ import { useSession } from '@/store/session';
 import { colors, spacing, StatusLevel, typography } from '@/theme';
 import { timeAgo } from '@/utils/time';
 
-const STATUS_LABEL: Record<StatusLevel, string> = {
-  good: 'Stable',
-  warn: 'Watch',
-  bad: 'Urgent',
+const STATUS_KEY: Record<StatusLevel, string> = {
+  good: 'status.stable',
+  warn: 'status.watch',
+  bad: 'status.urgent',
 };
 
 /** Caregiver home: a card per monitored patient with status + alert badge. */
 export default function CaregiverHome() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { user, signOut } = useSession();
 
   return (
     <Screen>
       <View style={styles.topBar}>
         <View>
-          <Text style={styles.title}>Patients</Text>
+          <Text style={styles.title}>{t('common.patients')}</Text>
           <Text style={styles.subtitle}>{user?.display_name}</Text>
         </View>
         <Pressable onPress={signOut} hitSlop={8}>
-          <Text style={styles.switch}>Sign out</Text>
+          <Text style={styles.switch}>{t('common.signOut')}</Text>
         </Pressable>
       </View>
 
@@ -44,6 +46,7 @@ export default function CaregiverHome() {
 }
 
 function PatientCard({ patient, onPress }: { patient: PatientSummary; onPress: () => void }) {
+  const { t } = useTranslation();
   const scores = scoresFor(patient.metrics);
   return (
     <Card onPress={onPress} style={styles.card}>
@@ -54,14 +57,14 @@ function PatientCard({ patient, onPress }: { patient: PatientSummary; onPress: (
             <Text style={styles.name}>{patient.user.display_name}</Text>
             {patient.hasUnacknowledgedAlert ? <View style={styles.alertDot} /> : null}
           </View>
-          <Text style={styles.updated}>Updated {timeAgo(patient.lastUpdated)}</Text>
+          <Text style={styles.updated}>{t('caregiver.updated', { time: timeAgo(patient.lastUpdated) })}</Text>
         </View>
-        <StatusPill level={patient.status} label={STATUS_LABEL[patient.status]} />
+        <StatusPill level={patient.status} label={t(STATUS_KEY[patient.status])} />
       </View>
       <View style={styles.metricsRow}>
-        <MiniMetric label="Energy" score={scores.fatigue} accent={colors.fatigue} />
-        <MiniMetric label="Attention" score={scores.attention} accent={colors.attention} />
-        <MiniMetric label="Relaxation" score={scores.relaxation} accent={colors.relaxation} />
+        <MiniMetric label={t('metrics.energy')} score={scores.fatigue} accent={colors.fatigue} />
+        <MiniMetric label={t('metrics.attention')} score={scores.attention} accent={colors.attention} />
+        <MiniMetric label={t('metrics.relaxation')} score={scores.relaxation} accent={colors.relaxation} />
       </View>
     </Card>
   );

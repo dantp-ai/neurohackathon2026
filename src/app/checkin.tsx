@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Screen, TextField } from '@/components';
@@ -8,14 +9,14 @@ import { colors, radius, spacing, statusColors, StatusLevel, typography } from '
 
 interface Choice {
   value: CheckinResponseValue;
-  label: string;
+  labelKey: string;
   level: StatusLevel;
 }
 
 const CHOICES: Choice[] = [
-  { value: 'ok', label: "I'm okay", level: 'good' },
-  { value: 'not_great', label: 'Not great', level: 'warn' },
-  { value: 'help', label: 'I need help', level: 'bad' },
+  { value: 'ok', labelKey: 'feelings.okay', level: 'good' },
+  { value: 'not_great', labelKey: 'feelings.notGreat', level: 'warn' },
+  { value: 'help', labelKey: 'feelings.needHelp', level: 'bad' },
 ];
 
 /**
@@ -24,6 +25,7 @@ const CHOICES: Choice[] = [
  */
 export default function CheckinModal() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [selected, setSelected] = useState<CheckinResponseValue | null>(null);
   const [note, setNote] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -37,12 +39,12 @@ export default function CheckinModal() {
     return (
       <Screen>
         <View style={styles.center}>
-          <Text style={styles.thanksTitle}>Thank you</Text>
+          <Text style={styles.thanksTitle}>{t('checkin.thankYou')}</Text>
           <Text style={styles.thanksBody}>
-            Your care team has been updated.
-            {selected === 'help' ? ' Someone will reach out to you shortly.' : ''}
+            {t('checkin.updatedBody')}
+            {selected === 'help' ? ` ${t('checkin.reachOut')}` : ''}
           </Text>
-          <Button title="Done" size="lg" onPress={() => router.back()} />
+          <Button title={t('common.done')} size="lg" onPress={() => router.back()} />
         </View>
       </Screen>
     );
@@ -51,8 +53,8 @@ export default function CheckinModal() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Text style={styles.title}>How are you feeling?</Text>
-        <Text style={styles.subtitle}>Please tell us how you’re doing at the moment.</Text>
+        <Text style={styles.title}>{t('checkin.howFeeling')}</Text>
+        <Text style={styles.subtitle}>{t('checkin.subtitle')}</Text>
       </View>
 
       <View style={styles.choices}>
@@ -71,24 +73,24 @@ export default function CheckinModal() {
                 },
               ]}
             >
-              <Text style={[styles.choiceLabel, isSel && { color: tint.fg }]}>{c.label}</Text>
+              <Text style={[styles.choiceLabel, isSel && { color: tint.fg }]}>{t(c.labelKey)}</Text>
             </Pressable>
           );
         })}
       </View>
 
       <TextField
-        label="Describe if anything is happening"
+        label={t('patient.describe')}
         value={note}
         onChangeText={setNote}
-        placeholder="e.g. I feel a little dizzy"
+        placeholder={t('patient.describePlaceholder')}
         multiline
         style={styles.noteInput}
       />
 
       <View style={styles.footer}>
-        <Button title="Submit" size="xl" disabled={!selected && !note.trim()} onPress={submit} />
-        <Button title="Not now" variant="ghost" onPress={() => router.back()} />
+        <Button title={t('common.submit')} size="xl" disabled={!selected && !note.trim()} onPress={submit} />
+        <Button title={t('common.notNow')} variant="ghost" onPress={() => router.back()} />
       </View>
     </Screen>
   );

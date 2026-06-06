@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Button } from './Button';
@@ -30,12 +31,12 @@ const toDraft = (l: Label): Draft => ({
   resolution: l.resolution,
 });
 
-const FIELDS: { key: keyof Draft; label: string }[] = [
-  { key: 'activity', label: 'Activity' },
-  { key: 'medications', label: 'Medications' },
-  { key: 'subjective_state', label: 'Subjective State' },
-  { key: 'event_type', label: 'Event Type' },
-  { key: 'resolution', label: 'Resolution' },
+const FIELDS: { key: keyof Draft; labelKey: string }[] = [
+  { key: 'activity', labelKey: 'labels.activity' },
+  { key: 'medications', labelKey: 'labels.medications' },
+  { key: 'subjective_state', labelKey: 'labels.subjectiveState' },
+  { key: 'event_type', labelKey: 'labels.eventType' },
+  { key: 'resolution', labelKey: 'labels.resolution' },
 ];
 
 /**
@@ -43,6 +44,7 @@ const FIELDS: { key: keyof Draft; label: string }[] = [
  * caregiver edit any field, and confirms it as ground truth.
  */
 export function LabelReviewCard({ label, initialEditing = false }: LabelReviewCardProps) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState<Draft>(() => toDraft(label));
   const [editing, setEditing] = useState(initialEditing);
   const [confirmed, setConfirmed] = useState(label.confirmed_by_caregiver);
@@ -56,13 +58,13 @@ export function LabelReviewCard({ label, initialEditing = false }: LabelReviewCa
   return (
     <Card style={styles.card}>
       <View style={styles.head}>
-        <Text style={styles.title}>Extracted Label</Text>
+        <Text style={styles.title}>{t('labels.extracted')}</Text>
         {confirmed ? (
-          <StatusPill level="good" label="Confirmed" />
+          <StatusPill level="good" label={t('labels.confirmed')} />
         ) : (
           <View style={styles.confBadge}>
             <Text style={styles.confText}>
-              {label.extraction_method === 'llm_auto' ? 'AI' : 'Manual'} ·{' '}
+              {t(label.extraction_method === 'llm_auto' ? 'labels.ai' : 'labels.manual')} ·{' '}
               {Math.round(label.confidence * 100)}%
             </Text>
           </View>
@@ -72,7 +74,7 @@ export function LabelReviewCard({ label, initialEditing = false }: LabelReviewCa
       <View style={styles.fields}>
         {FIELDS.map((f) => (
           <View key={f.key} style={styles.field}>
-            <Text style={styles.fieldLabel}>{f.label}</Text>
+            <Text style={styles.fieldLabel}>{t(f.labelKey)}</Text>
             {editing ? (
               <TextInput
                 style={styles.input}
@@ -90,7 +92,7 @@ export function LabelReviewCard({ label, initialEditing = false }: LabelReviewCa
       {!confirmed && (
         <View style={styles.actions}>
           <Button
-            title={editing ? 'Cancel' : 'Edit'}
+            title={t(editing ? 'common.cancel' : 'common.edit')}
             variant="secondary"
             size="md"
             fullWidth={false}
@@ -101,7 +103,7 @@ export function LabelReviewCard({ label, initialEditing = false }: LabelReviewCa
             style={styles.actionBtn}
           />
           <Button
-            title="Confirm"
+            title={t('common.confirm')}
             size="md"
             fullWidth={false}
             onPress={confirm}

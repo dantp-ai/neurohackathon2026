@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -28,6 +29,7 @@ type MessageThreadProps = {
  * caregiver detail Messages tab.
  */
 export function MessageThread({ patientName, caregiverName, senderRole }: MessageThreadProps) {
+  const { t } = useTranslation();
   const { messages, loading, error, senderId, send } = useMessages(
     patientName,
     caregiverName,
@@ -52,8 +54,8 @@ export function MessageThread({ patientName, caregiverName, senderRole }: Messag
         contentContainerStyle={styles.thread}
         keyboardShouldPersistTaps="handled"
       >
-        {loading ? <Text style={styles.status}>Connecting…</Text> : null}
-        {error ? <Text style={styles.status}>Can’t reach the server: {error}</Text> : null}
+        {loading ? <Text style={styles.status}>{t('messages.connecting')}</Text> : null}
+        {error ? <Text style={styles.status}>{t('messages.cantReach', { error })}</Text> : null}
         {messages.map((m) => {
           const mine = m.sender_id === senderId;
           return (
@@ -72,7 +74,7 @@ export function MessageThread({ patientName, caregiverName, senderRole }: Messag
       <View style={styles.inputBar}>
         <TextInput
           style={styles.input}
-          placeholder="Type a message"
+          placeholder={t('messages.typeMessage')}
           placeholderTextColor={colors.textMuted}
           value={draft}
           onChangeText={setDraft}
@@ -83,7 +85,7 @@ export function MessageThread({ patientName, caregiverName, senderRole }: Messag
           disabled={!draft.trim()}
           style={[styles.sendBtn, !draft.trim() && styles.sendDisabled]}
         >
-          <Text style={styles.sendLabel}>Send</Text>
+          <Text style={styles.sendLabel}>{t('common.send')}</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>

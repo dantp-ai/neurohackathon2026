@@ -10,7 +10,13 @@
     "patients": "患者",
     "send": "发送",
     "confirm": "确认",
-    "edit": "编辑"
+    "edit": "编辑",
+    "cancel": "取消",
+    "done": "完成",
+    "submit": "提交",
+    "notNow": "暂不",
+    "signOut": "退出登录",
+    "bpm": "次/分"
   },
   "login": {
     "email": "邮箱",
@@ -38,6 +44,80 @@
     "vitals": "生命体征",
     "heartRate": "心率"
   },
+  "status": {
+    "stable": "稳定",
+    "watch": "观察",
+    "urgent": "紧急"
+  },
+  "severity": {
+    "low": "低",
+    "medium": "中",
+    "high": "高"
+  },
+  "caregiver": {
+    "patientNotFound": "未找到患者。",
+    "updated": "更新于 {{time}}",
+    "segmentsError": "无法加载脑电片段：{{error}}"
+  },
+  "alerts": {
+    "hide": "隐藏",
+    "show": "显示",
+    "showResolved": "显示已解决（{{count}}）",
+    "hideResolved": "隐藏已解决（{{count}}）",
+    "noActive": "该患者暂无活动警报。",
+    "noResponse": "无回复",
+    "resolved": "已解决",
+    "needsFollowUp": "需跟进"
+  },
+  "labels": {
+    "add": "+ 添加标签",
+    "none": "暂无标签。",
+    "extracted": "提取的标签",
+    "confirmed": "已确认",
+    "ai": "AI",
+    "manual": "手动",
+    "activity": "活动",
+    "medications": "用药",
+    "subjectiveState": "主观状态",
+    "eventType": "事件类型",
+    "resolution": "处理结果"
+  },
+  "messages": {
+    "connecting": "连接中…",
+    "cantReach": "无法连接服务器：{{error}}",
+    "typeMessage": "输入消息",
+    "with": "与 {{name}}"
+  },
+  "patient": {
+    "hello": "你好，{{name}}",
+    "checkinTitle": "签到",
+    "checkinPrompt": "您现在感觉如何？请报告任何症状。",
+    "describe": "如有不适请描述",
+    "describePlaceholder": "例如：我有点头晕",
+    "sendCare": "发送给护理团队",
+    "thanks": "谢谢 — 已通知您的护理团队。",
+    "currentReadings": "当前读数"
+  },
+  "feelings": {
+    "okay": "我很好",
+    "notGreat": "不太好",
+    "needHelp": "我需要帮助"
+  },
+  "medication": {
+    "subtitle": "记录您刚服用的药物。",
+    "namePlaceholder": "药物名称",
+    "previous": "既往用药",
+    "addTaken": "添加（刚服用）",
+    "recent": "最近",
+    "none": "暂无用药记录。"
+  },
+  "checkin": {
+    "thankYou": "谢谢",
+    "updatedBody": "已通知您的护理团队。",
+    "reachOut": "我们会尽快与您联系。",
+    "howFeeling": "您感觉如何？",
+    "subtitle": "请告诉我们您此刻的状态。"
+  },
   "demo": {
     "title": "认知衰退随时间的变化",
     "subtitle": "每个点代表一个 30 秒的脑电窗口，由基础模型实时生成嵌入。随着时间加速，观察大脑状态从健康漂移到痴呆。",
@@ -51,6 +131,7 @@
     "pause": "暂停",
     "replay": "重播",
     "reset": "重置",
+    "loading": "正在加载轨迹…",
     "noData": "暂无轨迹数据。请运行 seed_trajectory 脚本。"
   },
   "embedding": {
@@ -58,7 +139,10 @@
     "subtitle": "{{count}} 个片段 · 颜色 = 异常评分",
     "healthy": "健康",
     "unhealthy": "不健康",
-    "empty": "暂无嵌入数据。"
+    "empty": "暂无嵌入数据。",
+    "baseline": "基线",
+    "mid": "中度",
+    "anomalous": "异常"
   },
   "stream": {
     "title": "数据流",

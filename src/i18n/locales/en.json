@@ -10,7 +10,13 @@
     "patients": "Patients",
     "send": "Send",
     "confirm": "Confirm",
-    "edit": "Edit"
+    "edit": "Edit",
+    "cancel": "Cancel",
+    "done": "Done",
+    "submit": "Submit",
+    "notNow": "Not now",
+    "signOut": "Sign out",
+    "bpm": "bpm"
   },
   "login": {
     "email": "Email",
@@ -38,6 +44,80 @@
     "vitals": "Vitals",
     "heartRate": "Heart Rate"
   },
+  "status": {
+    "stable": "Stable",
+    "watch": "Watch",
+    "urgent": "Urgent"
+  },
+  "severity": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High"
+  },
+  "caregiver": {
+    "patientNotFound": "Patient not found.",
+    "updated": "Updated {{time}}",
+    "segmentsError": "Could not load EEG segments: {{error}}"
+  },
+  "alerts": {
+    "hide": "Hide",
+    "show": "Show",
+    "showResolved": "Show resolved ({{count}})",
+    "hideResolved": "Hide resolved ({{count}})",
+    "noActive": "No active alerts for this patient.",
+    "noResponse": "No response",
+    "resolved": "Resolved",
+    "needsFollowUp": "Needs Follow-Up"
+  },
+  "labels": {
+    "add": "+ Add label",
+    "none": "No labels yet.",
+    "extracted": "Extracted Label",
+    "confirmed": "Confirmed",
+    "ai": "AI",
+    "manual": "Manual",
+    "activity": "Activity",
+    "medications": "Medications",
+    "subjectiveState": "Subjective State",
+    "eventType": "Event Type",
+    "resolution": "Resolution"
+  },
+  "messages": {
+    "connecting": "Connecting…",
+    "cantReach": "Can't reach the server: {{error}}",
+    "typeMessage": "Type a message",
+    "with": "with {{name}}"
+  },
+  "patient": {
+    "hello": "Hello, {{name}}",
+    "checkinTitle": "Check-in",
+    "checkinPrompt": "How are you feeling right now? Please report any symptoms.",
+    "describe": "Describe if anything is happening",
+    "describePlaceholder": "e.g. I feel a little dizzy",
+    "sendCare": "Send to care team",
+    "thanks": "Thank you — your care team has been updated.",
+    "currentReadings": "Current readings"
+  },
+  "feelings": {
+    "okay": "I'm okay",
+    "notGreat": "Not great",
+    "needHelp": "I need help"
+  },
+  "medication": {
+    "subtitle": "Log a medication you just took.",
+    "namePlaceholder": "Medication name",
+    "previous": "Previous medications",
+    "addTaken": "Add (taken now)",
+    "recent": "Recent",
+    "none": "No medications logged yet."
+  },
+  "checkin": {
+    "thankYou": "Thank you",
+    "updatedBody": "Your care team has been updated.",
+    "reachOut": "Someone will reach out to you shortly.",
+    "howFeeling": "How are you feeling?",
+    "subtitle": "Please tell us how you're doing at the moment."
+  },
   "demo": {
     "title": "Cognitive decline over time",
     "subtitle": "Each point is a 30-second EEG window, embedded live by the foundation model. Watch the brain state drift from healthy to dementia as time accelerates.",
@@ -51,6 +131,7 @@
     "pause": "Pause",
     "replay": "Replay",
     "reset": "Reset",
+    "loading": "Loading trajectory…",
     "noData": "No trajectory data. Run the seed_trajectory script."
   },
   "embedding": {
@@ -58,7 +139,10 @@
     "subtitle": "{{count}} segments · color = anomaly score",
     "healthy": "Healthy",
     "unhealthy": "Unhealthy",
-    "empty": "No embedding data yet."
+    "empty": "No embedding data yet.",
+    "baseline": "Baseline",
+    "mid": "Mid",
+    "anomalous": "Anomalous"
   },
   "stream": {
     "title": "Data streaming",

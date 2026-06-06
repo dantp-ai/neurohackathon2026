@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Card, MetricTile, Screen, StatusRing, TextField, VitalCard } from '@/components';
@@ -9,15 +10,16 @@ import { CheckinResponseValue } from '@/types';
 import { colors, spacing, typography } from '@/theme';
 import { timeAgo } from '@/utils/time';
 
-const FEELINGS: { value: CheckinResponseValue; label: string }[] = [
-  { value: 'ok', label: "I'm okay" },
-  { value: 'not_great', label: 'Not great' },
-  { value: 'help', label: 'I need help' },
+const FEELINGS: { value: CheckinResponseValue; labelKey: string }[] = [
+  { value: 'ok', labelKey: 'feelings.okay' },
+  { value: 'not_great', labelKey: 'feelings.notGreat' },
+  { value: 'help', labelKey: 'feelings.needHelp' },
 ];
 
 /** Patient home: status, a check-in you can always use, and current readings. */
 export default function PatientHome() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { user, signOut } = useSession();
   const patient = CURRENT_PATIENT;
   const scores = scoresFor(patient.metrics);
@@ -37,21 +39,19 @@ export default function PatientHome() {
   return (
     <Screen>
       <View style={styles.topBar}>
-        <Text style={styles.greeting}>Hello, {user?.display_name?.split(' ')[0] ?? 'there'}</Text>
+        <Text style={styles.greeting}>{t('patient.hello', { name: user?.display_name?.split(' ')[0] ?? 'there' })}</Text>
         <Pressable onPress={signOut} hitSlop={8}>
-          <Text style={styles.switch}>Sign out</Text>
+          <Text style={styles.switch}>{t('common.signOut')}</Text>
         </Pressable>
       </View>
 
       <View style={styles.ringWrap}>
-        <StatusRing level={patient.status} subtitle={`Updated ${timeAgo(patient.lastUpdated)}`} />
+        <StatusRing level={patient.status} subtitle={t('caregiver.updated', { time: timeAgo(patient.lastUpdated) })} />
       </View>
 
       <Card style={styles.checkinCard}>
-        <Text style={styles.checkinTitle}>Check-in</Text>
-        <Text style={styles.checkinPrompt}>
-          How are you feeling right now? Please report any symptoms.
-        </Text>
+        <Text style={styles.checkinTitle}>{t('patient.checkinTitle')}</Text>
+        <Text style={styles.checkinPrompt}>{t('patient.checkinPrompt')}</Text>
         <View style={styles.feelingRow}>
           {FEELINGS.map((f) => {
             const active = feeling === f.value;
@@ -62,42 +62,42 @@ export default function PatientHome() {
                 style={[styles.feelingBtn, active && styles.feelingBtnActive]}
               >
                 <Text style={[styles.feelingLabel, active && styles.feelingLabelActive]}>
-                  {f.label}
+                  {t(f.labelKey)}
                 </Text>
               </Pressable>
             );
           })}
         </View>
         <TextField
-          label="Describe if anything is happening"
+          label={t('patient.describe')}
           value={note}
           onChangeText={setNote}
-          placeholder="e.g. I feel a little dizzy"
+          placeholder={t('patient.describePlaceholder')}
           multiline
           style={styles.noteInput}
         />
         <Button
-          title="Send to care team"
+          title={t('patient.sendCare')}
           size="lg"
           disabled={!feeling && !note.trim()}
           onPress={submit}
         />
-        {sent ? <Text style={styles.sentNote}>Thank you — your care team has been updated.</Text> : null}
+        {sent ? <Text style={styles.sentNote}>{t('patient.thanks')}</Text> : null}
       </Card>
 
-      <Text style={styles.sectionTitle}>Current readings</Text>
+      <Text style={styles.sectionTitle}>{t('patient.currentReadings')}</Text>
       <View style={styles.metrics}>
-        <MetricTile label="Energy" score={scores.fatigue} accent={colors.fatigue} />
-        <MetricTile label="Attention" score={scores.attention} accent={colors.attention} />
-        <MetricTile label="Relaxation" score={scores.relaxation} accent={colors.relaxation} />
+        <MetricTile label={t('metrics.energy')} score={scores.fatigue} accent={colors.fatigue} />
+        <MetricTile label={t('metrics.attention')} score={scores.attention} accent={colors.attention} />
+        <MetricTile label={t('metrics.relaxation')} score={scores.relaxation} accent={colors.relaxation} />
       </View>
 
-      <Text style={[styles.sectionTitle, styles.vitalsTitle]}>Vitals</Text>
+      <Text style={[styles.sectionTitle, styles.vitalsTitle]}>{t('metrics.vitals')}</Text>
       <VitalCard
         icon="❤️"
-        label="Heart Rate"
+        label={t('metrics.heartRate')}
         value={hr.value}
-        unit="bpm"
+        unit={t('common.bpm')}
         status={hr.status}
         statusLabel={hr.label}
         trend={hr.trend}

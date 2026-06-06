@@ -34,12 +34,12 @@ import { colors, radius, spacing, StatusLevel, statusColors, typography } from '
 import { timeAgo } from '@/utils/time';
 
 type Tab = 'metrics' | 'map' | 'alerts' | 'messages' | 'labels';
-const TABS: { key: Tab; label: string }[] = [
-  { key: 'metrics', label: 'Metrics' },
-  { key: 'map', label: 'Map' },
-  { key: 'alerts', label: 'Alerts' },
-  { key: 'messages', label: 'Messages' },
-  { key: 'labels', label: 'Labels' },
+const TABS: { key: Tab; labelKey: string }[] = [
+  { key: 'metrics', labelKey: 'tabs.metrics' },
+  { key: 'map', labelKey: 'tabs.map' },
+  { key: 'alerts', labelKey: 'tabs.alerts' },
+  { key: 'messages', labelKey: 'tabs.messages' },
+  { key: 'labels', labelKey: 'tabs.labels' },
 ];
 
 const SEVERITY_LEVEL: Record<Severity, StatusLevel> = {
@@ -48,14 +48,21 @@ const SEVERITY_LEVEL: Record<Severity, StatusLevel> = {
   high: 'bad',
 };
 
-const CHECKIN_TEXT: Record<CheckinResponseValue, string> = {
-  ok: "Patient: I'm okay",
-  not_great: 'Patient: Not great',
-  help: 'Patient: I need help',
+const STATUS_KEY: Record<StatusLevel, string> = {
+  good: 'status.stable',
+  warn: 'status.watch',
+  bad: 'status.urgent',
+};
+
+const CHECKIN_KEY: Record<CheckinResponseValue, string> = {
+  ok: 'feelings.okay',
+  not_great: 'feelings.notGreat',
+  help: 'feelings.needHelp',
 };
 
 export default function PatientDetail() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [tab, setTab] = useState<Tab>('metrics');
 
@@ -64,9 +71,9 @@ export default function PatientDetail() {
   if (!patient) {
     return (
       <SafeAreaView style={styles.safe}>
-        <Text style={styles.missing}>Patient not found.</Text>
+        <Text style={styles.missing}>{t('caregiver.patientNotFound')}</Text>
         <Pressable onPress={() => router.back()}>
-          <Text style={styles.back}>‹ Back</Text>
+          <Text style={styles.back}>{`‹ ${t('common.back')}`}</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -77,26 +84,28 @@ export default function PatientDetail() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={8} style={styles.backBtn}>
-          <Text style={styles.back}>‹ Patients</Text>
+          <Text style={styles.back}>{`‹ ${t('common.patients')}`}</Text>
         </Pressable>
         <View style={styles.headerMain}>
           <Avatar name={patient.user.display_name} uri={patient.user.avatar_url} size={44} />
           <Text style={styles.name}>{patient.user.display_name}</Text>
-          <StatusPill level={patient.status} label={patient.status.toUpperCase()} />
+          <StatusPill level={patient.status} label={t(STATUS_KEY[patient.status])} />
         </View>
       </View>
 
       {/* Segmented tabs */}
       <View style={styles.tabs}>
-        {TABS.map((t) => {
-          const active = tab === t.key;
+        {TABS.map((item) => {
+          const active = tab === item.key;
           return (
             <Pressable
-              key={t.key}
-              onPress={() => setTab(t.key)}
+              key={item.key}
+              onPress={() => setTab(item.key)}
               style={[styles.tab, active && styles.tabActive]}
             >
-              <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{t.label}</Text>
+              <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
+                {t(item.labelKey)}
+              </Text>
             </Pressable>
           );
         })}
@@ -124,6 +133,7 @@ export default function PatientDetail() {
 // --- Metrics tab -----------------------------------------------------------
 
 function MetricsTab({ patientId, metrics }: { patientId: string; metrics: WellnessMetrics }) {
+  const { t } = useTranslation();
   const series = timelineFor(patientId);
   const scores = scoresFor(metrics);
   const hr = heartRateFor(patientId);
@@ -133,34 +143,34 @@ function MetricsTab({ patientId, metrics }: { patientId: string; metrics: Wellne
     <View style={{ gap: spacing.lg }}>
       <StreamControls />
       <View style={styles.metricsRow}>
-        <MetricTile label="Energy" score={scores.fatigue} accent={colors.fatigue} />
-        <MetricTile label="Attention" score={scores.attention} accent={colors.attention} />
-        <MetricTile label="Relaxation" score={scores.relaxation} accent={colors.relaxation} />
+        <MetricTile label={t('metrics.energy')} score={scores.fatigue} accent={colors.fatigue} />
+        <MetricTile label={t('metrics.attention')} score={scores.attention} accent={colors.attention} />
+        <MetricTile label={t('metrics.relaxation')} score={scores.relaxation} accent={colors.relaxation} />
       </View>
 
-      <Text style={styles.sectionTitle}>Last hour</Text>
+      <Text style={styles.sectionTitle}>{t('metrics.lastHour')}</Text>
       <LineChart
         series={[
-          { label: 'Energy', color: colors.fatigue, values: series.map((p) => p.fatigue) },
-          { label: 'Attention', color: colors.attention, values: series.map((p) => p.attention) },
-          { label: 'Relaxation', color: colors.relaxation, values: series.map((p) => p.relaxation) },
+          { label: t('metrics.energy'), color: colors.fatigue, values: series.map((p) => p.fatigue) },
+          { label: t('metrics.attention'), color: colors.attention, values: series.map((p) => p.attention) },
+          { label: t('metrics.relaxation'), color: colors.relaxation, values: series.map((p) => p.relaxation) },
         ]}
       />
 
-      <Text style={styles.sectionTitle}>Vitals</Text>
+      <Text style={styles.sectionTitle}>{t('metrics.vitals')}</Text>
       <Card style={{ gap: spacing.md }}>
         <View style={styles.vitalHead}>
-          <Text style={styles.vitalName}>❤️  Heart Rate</Text>
+          <Text style={styles.vitalName}>{`❤️  ${t('metrics.heartRate')}`}</Text>
           <View style={styles.vitalRight}>
             <Text style={[styles.vitalValue, { color: statusColors[hr.status].fg }]}>
               {hr.value}
-              <Text style={styles.vitalUnit}> bpm</Text>
+              <Text style={styles.vitalUnit}>{` ${t('common.bpm')}`}</Text>
             </Text>
             <StatusPill level={hr.status} label={hr.label} />
           </View>
         </View>
         <LineChart
-          series={[{ label: 'Heart rate (bpm)', color: colors.heart, values: hr.trend }]}
+          series={[{ label: `${t('metrics.heartRate')} (${t('common.bpm')})`, color: colors.heart, values: hr.trend }]}
           min={hrMin}
           max={hrMax}
           height={120}
@@ -181,7 +191,7 @@ function MapTab({ displayName }: { displayName: string }) {
     return <Text style={styles.empty}>{t('common.loading')}</Text>;
   }
   if (error) {
-    return <Text style={styles.empty}>Could not load EEG segments: {error}</Text>;
+    return <Text style={styles.empty}>{t('caregiver.segmentsError', { error })}</Text>;
   }
   return (
     <Card style={{ gap: spacing.md }}>
@@ -206,6 +216,7 @@ function MapTab({ displayName }: { displayName: string }) {
 // --- Alerts tab ------------------------------------------------------------
 
 function AlertsTab({ patientId }: { patientId: string }) {
+  const { t } = useTranslation();
   const [showResolved, setShowResolved] = useState(false);
   const all = eventsForPatient(patientId);
   const events = showResolved ? all : all.filter((e) => !e.resolved);
@@ -216,12 +227,12 @@ function AlertsTab({ patientId }: { patientId: string }) {
       {resolvedCount > 0 ? (
         <Pressable style={styles.toggleRow} onPress={() => setShowResolved((s) => !s)}>
           <Text style={styles.toggleLabel}>
-            {showResolved ? 'Hide' : 'Show'} resolved ({resolvedCount})
+            {t(showResolved ? 'alerts.hideResolved' : 'alerts.showResolved', { count: resolvedCount })}
           </Text>
         </Pressable>
       ) : null}
       {events.length === 0 ? (
-        <Text style={styles.empty}>No active alerts for this patient.</Text>
+        <Text style={styles.empty}>{t('alerts.noActive')}</Text>
       ) : null}
       {events.map((e) => {
         const level = SEVERITY_LEVEL[e.severity];
@@ -232,15 +243,15 @@ function AlertsTab({ patientId }: { patientId: string }) {
           <View key={e.id} style={[styles.alertCard, { borderLeftColor: tint.fg }]}>
             <View style={styles.alertHead}>
               <Text style={styles.alertTime}>{timeAgo(e.triggered_at)}</Text>
-              <StatusPill level={level} label={e.severity.toUpperCase()} />
+              <StatusPill level={level} label={t(`severity.${e.severity}`)} />
             </View>
             <Text style={styles.alertCheckin}>
-              {checkin ? CHECKIN_TEXT[checkin.response] : 'No response'}
+              {checkin ? t(CHECKIN_KEY[checkin.response]) : t('alerts.noResponse')}
             </Text>
             {label ? <Text style={styles.alertSummary}>“{label.subjective_state}”</Text> : null}
             <StatusPill
               level={e.resolved ? 'good' : 'warn'}
-              label={e.resolved ? 'Resolved' : 'Needs Follow-Up'}
+              label={t(e.resolved ? 'alerts.resolved' : 'alerts.needsFollowUp')}
             />
           </View>
         );
@@ -269,18 +280,19 @@ function blankLabel(patientId: string): Label {
 }
 
 function LabelsTab({ patientId }: { patientId: string }) {
+  const { t } = useTranslation();
   const [added, setAdded] = useState<Label[]>([]);
   const labels = [...added, ...labelsForPatient(patientId)];
 
   return (
     <View style={{ gap: spacing.lg }}>
       <Button
-        title="+ Add label"
+        title={t('labels.add')}
         variant="secondary"
         onPress={() => setAdded((p) => [blankLabel(patientId), ...p])}
       />
       {labels.length === 0 ? (
-        <Text style={styles.empty}>No labels yet.</Text>
+        <Text style={styles.empty}>{t('labels.none')}</Text>
       ) : (
         labels.map((l) => (
           <LabelReviewCard key={l.id} label={l} initialEditing={l.extraction_method === 'caregiver_manual' && !l.confirmed_by_caregiver} />

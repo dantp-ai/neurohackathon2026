@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Button, Card, Screen } from '@/components';
@@ -13,6 +14,7 @@ import { clockTime, timeAgo } from '@/utils/time';
 
 /** Quick-add a medication taken now; lists recent medication entries. */
 export default function MedicationScreen() {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [logs, setLogs] = useState<MedicationLog[]>(() =>
     medicationLogsForPatient(CURRENT_PATIENT_ID),
@@ -37,13 +39,13 @@ export default function MedicationScreen() {
 
   return (
     <Screen>
-      <Text style={styles.title}>Medicine</Text>
-      <Text style={styles.subtitle}>Log a medication you just took.</Text>
+      <Text style={styles.title}>{t('tabs.medicine')}</Text>
+      <Text style={styles.subtitle}>{t('medication.subtitle')}</Text>
 
       <Card style={styles.addCard}>
         <TextInput
           style={styles.input}
-          placeholder="Medication name"
+          placeholder={t('medication.namePlaceholder')}
           placeholderTextColor={colors.textMuted}
           value={name}
           onChangeText={setName}
@@ -52,7 +54,7 @@ export default function MedicationScreen() {
         />
         {previous.length > 0 ? (
           <View>
-            <Text style={styles.pickLabel}>Previous medications</Text>
+            <Text style={styles.pickLabel}>{t('medication.previous')}</Text>
             <View style={styles.chips}>
               {previous.map((med) => (
                 <Pressable key={med} style={styles.chip} onPress={() => setName(med)}>
@@ -62,13 +64,13 @@ export default function MedicationScreen() {
             </View>
           </View>
         ) : null}
-        <Button title="Add (taken now)" size="lg" disabled={!name.trim()} onPress={add} />
+        <Button title={t('medication.addTaken')} size="lg" disabled={!name.trim()} onPress={add} />
       </Card>
 
-      <Text style={styles.sectionTitle}>Recent</Text>
+      <Text style={styles.sectionTitle}>{t('medication.recent')}</Text>
       <Card style={styles.list}>
         {logs.length === 0 ? (
-          <Text style={styles.empty}>No medications logged yet.</Text>
+          <Text style={styles.empty}>{t('medication.none')}</Text>
         ) : (
           logs.map((log, i) => (
             <View key={log.id} style={[styles.row, i < logs.length - 1 && styles.rowBorder]}>

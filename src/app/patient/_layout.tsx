@@ -1,4 +1,5 @@
 import { Redirect, Tabs } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Text } from 'react-native';
 
 import { useSession } from '@/store/session';
@@ -18,6 +19,7 @@ const TabIcon = (glyph: string) => {
  * not a patient, bounce back to the role switcher.
  */
 export default function PatientLayout() {
+  const { t } = useTranslation();
   const { role } = useSession();
   if (role !== 'patient') {
     return <Redirect href="/" />;
@@ -33,12 +35,12 @@ export default function PatientLayout() {
         tabBarLabelStyle: { fontSize: 13, fontWeight: '600' },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: TabIcon('🏠') }} />
+      <Tabs.Screen name="index" options={{ title: t('tabs.home'), tabBarIcon: TabIcon('🏠') }} />
       <Tabs.Screen
         name="medication"
-        options={{ title: 'Medicine', tabBarIcon: TabIcon('💊') }}
+        options={{ title: t('tabs.medicine'), tabBarIcon: TabIcon('💊') }}
       />
-      <Tabs.Screen name="messages" options={{ title: 'Messages', tabBarIcon: TabIcon('💬') }} />
+      <Tabs.Screen name="messages" options={{ title: t('tabs.messages'), tabBarIcon: TabIcon('💬') }} />
     </Tabs>
   );
 }
