@@ -129,9 +129,9 @@ def run(patient_id: str, device_id: str, stream) -> None:
             "device_id": device_id,
             "timestamp_start": datetime.now(timezone.utc).isoformat(),
             "duration_s": int(EMBED_WINDOW_S),
-            "fatigue":       round(normalized["fatigue"],   3),
-            "attention":     round(normalized["attention"], 3),
-            "mood":          round(normalized["mood"],      3),
+            "fatigue":       round(normalized["fatigue"],     3),
+            "attention":     round(normalized["attention"],   3),
+            "mood":          round(normalized["relaxation"],  3),
             "anomaly_score": round(anomaly_score,           3),
             "embedding":     embedding.tolist(),
         }
@@ -161,7 +161,7 @@ def run(patient_id: str, device_id: str, stream) -> None:
             f"[{datetime.now().strftime('%H:%M:%S')}] "
             f"fatigue={normalized['fatigue']:.2f}  "
             f"attention={normalized['attention']:.2f}  "
-            f"mood={normalized['mood']:.2f}  "
+            f"relaxation={normalized['relaxation']:.2f}  "
             f"anomaly={anomaly_score:.2f}  "
             f"({cal})"
         )

@@ -59,7 +59,7 @@ def compute_band_powers(
         )
         for band, (lo, hi) in BANDS.items():
             idx = (freqs >= lo) & (freqs <= hi)
-            band_totals[band] += float(np.trapz(psd[idx], freqs[idx]))
+            band_totals[band] += float(np.trapezoid(psd[idx], freqs[idx]))
 
     # Average across channels
     bp = {b: v / n_ch for b, v in band_totals.items()}
@@ -84,9 +84,9 @@ class SessionNormalizer:
     • Before enough baseline data: use population-level defaults.
 
     Outputs:
-        fatigue   — high θ/β → high value (inverted engagement)
-        attention — high engagement index → high value
-        mood      — high relative α → more relaxed / positive
+        fatigue    — high θ/β → high value
+        attention  — high engagement index → high value
+        relaxation — high relative α → more relaxed / positive
     """
 
     # Population-level fallback ranges (resting EEG, rough approximations)
@@ -128,7 +128,7 @@ class SessionNormalizer:
 
     def normalize(self, metrics: dict[str, float]) -> dict[str, float]:
         """
-        Return {'fatigue': float, 'attention': float, 'mood': float} ∈ [0, 1].
+        Return {'fatigue': float, 'attention': float, 'relaxation': float} ∈ [0, 1].
         """
         def _clip01(v: float, lo: float, hi: float) -> float:
             return float(np.clip((v - lo) / (hi - lo + 1e-8), 0.0, 1.0))
@@ -147,7 +147,7 @@ class SessionNormalizer:
         ra = metrics.get("relative_alpha",   0.0)
 
         return {
-            "fatigue":   _clip01(tb, lo_tb, hi_tb),  # high θ/β → fatigued
-            "attention": _clip01(ei, lo_ei, hi_ei),  # high engagement → attentive
-            "mood":      _clip01(ra, lo_ra, hi_ra),  # high α → relaxed / positive
+            "fatigue":    _clip01(tb, lo_tb, hi_tb),  # high θ/β → fatigued
+            "attention":  _clip01(ei, lo_ei, hi_ei),  # high engagement → attentive
+            "relaxation": _clip01(ra, lo_ra, hi_ra),  # high α → relaxed / positive
         }
