@@ -34,7 +34,6 @@ export default function PatientLayout() {
       }}
     >
       <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: TabIcon('🏠') }} />
-      <Tabs.Screen name="activity" options={{ title: 'Activity', tabBarIcon: TabIcon('🚶') }} />
       <Tabs.Screen
         name="medication"
         options={{ title: 'Medicine', tabBarIcon: TabIcon('💊') }}

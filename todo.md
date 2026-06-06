@@ -1,23 +1,23 @@
 # Change now:
 ## Patient View
-- [] Get rid of the words in the circle -- "Take It Easy" is cut off
-- [] Is the "we noticed something"/check-in supposed to be the anomaly detection? Would it be there if there was no anomaly? Maybe it could always be there with a please tell us how you are feeling at the moment. And could it have a place for text? something along the lines of "Describe if anything is happening?" And get rid of the emojis
-- [] We still want to ping them when there is an anamoly but less frightening with we noticed something
-- [] "How am I doing" should be phrased a bit more clinical 
-- [] let's change the metrics 1-5 where 1 is worst (most fatigued, least attentive, least relaxed) and 5 is the best
-- [] Remove the whole activity tab
-- [] Medicine tab: add a dropdown of previous medications 
-- [] Does the messages work? 
+- [x] Get rid of the words in the circle -- "Take It Easy" is cut off
+- [x] Is the "we noticed something"/check-in supposed to be the anomaly detection? Would it be there if there was no anomaly? Maybe it could always be there with a please tell us how you are feeling at the moment. And could it have a place for text? something along the lines of "Describe if anything is happening?" And get rid of the emojis
+- [x] We still want to ping them when there is an anamoly but less frightening with we noticed something
+- [x] "How am I doing" should be phrased a bit more clinical 
+- [x] let's change the metrics 1-5 where 1 is worst (most fatigued, least attentive, least relaxed) and 5 is the best
+- [x] Remove the whole activity tab
+- [x] Medicine tab: add a dropdown of previous medications 
+- [x] Does the messages work? 
 ## Caretaker view
-- [] what determines the condition of the patients? 
-- [] let's add the simple metrics to the patient overview screen (fatigue, etc)
-- [] Instead of a bar plot, could the metrics be a line graph because they will be updated in real time? 
-- [] we are changing it 1-5 here too
-- [] let's change the scale to the last hour (sliding window)
-- [] let's remove the frequency bands 
-- [] in Alerts - resolved should be toggled away 
-- [] Can you update the labels to match the readme and we see all the past added labels too? 
-- [] And add a place to add labels from the caretaker
+- [x] what determines the condition of the patients? 
+- [x] let's add the simple metrics to the patient overview screen (fatigue, etc)
+- [x] Instead of a bar plot, could the metrics be a line graph because they will be updated in real time? 
+- [x] we are changing it 1-5 here too
+- [x] let's change the scale to the last hour (sliding window)
+- [x] let's remove the frequency bands 
+- [x] in Alerts - resolved should be toggled away 
+- [x] Can you update the labels to match the readme and we see all the past added labels too? 
+- [x] And add a place to add labels from the caretaker
 
 
 ### Anomaly/event labeler 

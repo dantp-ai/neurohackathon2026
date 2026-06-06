@@ -1,8 +1,12 @@
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Button, Card, Screen } from '@/components';
-import { CURRENT_PATIENT_ID, medicationLogsForPatient } from '@/mock/data';
+import {
+  CURRENT_PATIENT_ID,
+  medicationLogsForPatient,
+  previousMedicationNames,
+} from '@/mock/data';
 import { MedicationLog } from '@/types';
 import { colors, radius, spacing, typography } from '@/theme';
 import { clockTime, timeAgo } from '@/utils/time';
@@ -13,6 +17,7 @@ export default function MedicationScreen() {
   const [logs, setLogs] = useState<MedicationLog[]>(() =>
     medicationLogsForPatient(CURRENT_PATIENT_ID),
   );
+  const previous = previousMedicationNames(CURRENT_PATIENT_ID);
 
   const add = () => {
     const trimmed = name.trim();
@@ -45,6 +50,18 @@ export default function MedicationScreen() {
           returnKeyType="done"
           onSubmitEditing={add}
         />
+        {previous.length > 0 ? (
+          <View>
+            <Text style={styles.pickLabel}>Previous medications</Text>
+            <View style={styles.chips}>
+              {previous.map((med) => (
+                <Pressable key={med} style={styles.chip} onPress={() => setName(med)}>
+                  <Text style={styles.chipText}>{med}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ) : null}
         <Button title="Add (taken now)" size="lg" disabled={!name.trim()} onPress={add} />
       </Card>
 
@@ -72,6 +89,17 @@ const styles = StyleSheet.create({
   title: { ...typography.title, color: colors.text },
   subtitle: { ...typography.body, color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.lg },
   addCard: { gap: spacing.md },
+  pickLabel: { ...typography.label, color: colors.textMuted, marginBottom: spacing.sm },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  chip: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  chipText: { ...typography.label, color: colors.text },
   input: {
     ...typography.body,
     color: colors.text,

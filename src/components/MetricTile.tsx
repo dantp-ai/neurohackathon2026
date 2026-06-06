@@ -4,26 +4,33 @@ import { colors, radius, spacing, typography } from '@/theme';
 
 type MetricTileProps = {
   label: string;
-  /** 0–100 value. */
-  value: number;
-  /** Accent color for the bar + value. */
+  /** 1–5 score (5 = best). */
+  score: number;
+  /** Accent color for the value + filled pips. */
   accent: string;
-  /** Optional caption under the value, e.g. "vs. yesterday". */
   caption?: string;
 };
 
 /**
- * A single metric tile (Fatigue / Attention / Mood). Shows a 0–100 value and
- * a proportional fill bar. Used on both the patient home and caregiver detail.
+ * A single metric tile (Fatigue / Attention / Relaxation) on a 1–5 scale where
+ * 5 is best. Shows the score and five pips.
  */
-export function MetricTile({ label, value, accent, caption }: MetricTileProps) {
-  const clamped = Math.max(0, Math.min(100, Math.round(value)));
+export function MetricTile({ label, score, accent, caption }: MetricTileProps) {
+  const s = Math.max(1, Math.min(5, Math.round(score)));
   return (
     <View style={styles.tile}>
       <Text style={styles.label}>{label}</Text>
-      <Text style={[styles.value, { color: accent }]}>{clamped}</Text>
-      <View style={styles.track}>
-        <View style={[styles.fill, { width: `${clamped}%`, backgroundColor: accent }]} />
+      <View style={styles.scoreRow}>
+        <Text style={[styles.value, { color: accent }]}>{s}</Text>
+        <Text style={styles.outOf}>/5</Text>
+      </View>
+      <View style={styles.pips}>
+        {[1, 2, 3, 4, 5].map((p) => (
+          <View
+            key={p}
+            style={[styles.pip, { backgroundColor: p <= s ? accent : colors.surfaceAlt }]}
+          />
+        ))}
       </View>
       {caption ? <Text style={styles.caption}>{caption}</Text> : null}
     </View>
@@ -41,15 +48,11 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   label: { ...typography.label, color: colors.textMuted },
+  scoreRow: { flexDirection: 'row', alignItems: 'baseline' },
   value: { ...typography.display, fontSize: 34, lineHeight: 38 },
-  track: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.surfaceAlt,
-    overflow: 'hidden',
-    marginTop: spacing.xs,
-  },
-  fill: { height: '100%', borderRadius: 4 },
+  outOf: { ...typography.label, color: colors.textMuted, marginLeft: 2 },
+  pips: { flexDirection: 'row', gap: 4, marginTop: spacing.xs },
+  pip: { flex: 1, height: 6, borderRadius: 3 },
   caption: { ...typography.caption, color: colors.textMuted },
 });
 

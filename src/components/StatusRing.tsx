@@ -4,44 +4,40 @@ import { colors, statusColors, StatusLevel, typography } from '@/theme';
 
 type StatusRingProps = {
   level: StatusLevel;
-  /** Big word inside the ring, e.g. "Good". */
-  title: string;
-  /** Smaller line under the title, e.g. "Updated 2 min ago". */
+  /** Optional caption shown BELOW the ring (not inside it). */
   subtitle?: string;
   size?: number;
 };
 
 /**
- * Large circular wellness indicator for the patient home screen.
- * Dependency-free (no SVG): a thick colored ring with a soft tinted center.
+ * Large circular wellness indicator. The ring is a pure color signal (no text
+ * inside — that got clipped); any label goes underneath.
  */
-export function StatusRing({ level, title, subtitle, size = 220 }: StatusRingProps) {
+export function StatusRing({ level, subtitle, size = 200 }: StatusRingProps) {
   const c = statusColors[level];
   const ringStyle = {
     width: size,
     height: size,
     borderRadius: size / 2,
-    borderWidth: size * 0.08,
+    borderWidth: size * 0.09,
     borderColor: c.fg,
     backgroundColor: c.bg,
   };
   return (
     <View style={styles.wrap}>
       <View style={[styles.ring, ringStyle]}>
-        <Text style={[styles.title, { color: c.fg }]} numberOfLines={1}>
-          {title}
-        </Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        <View style={[styles.dot, { backgroundColor: c.fg, width: size * 0.18, height: size * 0.18, borderRadius: size * 0.09 }]} />
       </View>
+      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: 'center', justifyContent: 'center' },
+  wrap: { alignItems: 'center', justifyContent: 'center', gap: 12 },
   ring: { alignItems: 'center', justifyContent: 'center' },
-  title: { ...typography.display, textAlign: 'center' },
-  subtitle: { ...typography.caption, color: colors.textMuted, marginTop: 4, textAlign: 'center' },
+  dot: {},
+  subtitle: { ...typography.caption, color: colors.textMuted, textAlign: 'center' },
 });
 
 export default StatusRing;
