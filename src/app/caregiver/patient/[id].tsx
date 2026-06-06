@@ -12,12 +12,14 @@ import {
   MessageThread,
   MetricTile,
   StatusPill,
+  VitalCard,
 } from '@/components';
 import {
   bandPowersFor,
   CURRENT_CAREGIVER,
   checkinForEvent,
   eventsForPatient,
+  heartRateFor,
   labelForEvent,
   labelsForPatient,
   patientById,
@@ -120,6 +122,7 @@ export default function PatientDetail() {
 
 function MetricsTab({ patientId, metrics }: { patientId: string; metrics: WellnessMetrics }) {
   const series = timelineFor(patientId);
+  const hr = heartRateFor(patientId);
   return (
     <View style={{ gap: spacing.lg }}>
       <View style={styles.metricsRow}>
@@ -127,6 +130,16 @@ function MetricsTab({ patientId, metrics }: { patientId: string; metrics: Wellne
         <MetricTile label="Attention" value={metrics.attention} accent={colors.attention} />
         <MetricTile label="Relaxation" value={metrics.relaxation} accent={colors.relaxation} />
       </View>
+
+      <VitalCard
+        icon="❤️"
+        label="Heart Rate"
+        value={hr.value}
+        unit="bpm"
+        status={hr.status}
+        statusLabel={hr.label}
+        trend={hr.trend}
+      />
 
       <Card style={{ gap: spacing.md }}>
         <Text style={styles.cardTitle}>Frequency bands</Text>

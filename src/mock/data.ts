@@ -129,6 +129,38 @@ export const bandPowersFor = (patientId: string): BandPowers => {
 };
 
 // ---------------------------------------------------------------------------
+// Vitals (wearable modalities — non-EEG). Heart rate is the first; SpO2 /
+// temperature / respiration could follow the same shape. Simulated here in a
+// natural range, derived from the patient's status so the demo stays coherent
+// (a distressed patient also shows an elevated, more irregular heart rate).
+// ---------------------------------------------------------------------------
+
+export interface HeartRateReading {
+  value: number; // current bpm
+  trend: number[]; // recent readings (oldest → newest)
+  status: StatusLevel; // normal / elevated coloring
+  label: string; // 'Normal' | 'Elevated' | 'Low'
+}
+
+/** Resting baseline bpm by wellness status. */
+const HR_BASE: Record<StatusLevel, number> = { good: 68, warn: 80, bad: 96 };
+
+export const heartRateFor = (patientId: string): HeartRateReading => {
+  const status = patientById(patientId)?.status ?? 'good';
+  const base = HR_BASE[status];
+  const amp = status === 'bad' ? 10 : status === 'warn' ? 6 : 3; // more variability when unwell
+  const seed = patientId.charCodeAt(1) || 1;
+  const trend = Array.from({ length: 12 }).map((_, i) =>
+    Math.round(base + Math.sin((i + seed) / 1.5) * amp + ((i * seed) % 3) - 1),
+  );
+  const value = trend[trend.length - 1];
+  const level: StatusLevel =
+    value > 110 || value < 45 ? 'bad' : value > 100 || value < 55 ? 'warn' : 'good';
+  const label = value > 100 ? 'Elevated' : value < 55 ? 'Low' : 'Normal';
+  return { value, trend, status: level, label };
+};
+
+// ---------------------------------------------------------------------------
 // Events (anomaly alerts)
 // ---------------------------------------------------------------------------
 

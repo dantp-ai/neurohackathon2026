@@ -1,8 +1,8 @@
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Card, MetricTile, Screen, StatusRing } from '@/components';
-import { activeEventForPatient, CURRENT_PATIENT } from '@/mock/data';
+import { Button, Card, MetricTile, Screen, StatusRing, VitalCard } from '@/components';
+import { activeEventForPatient, CURRENT_PATIENT, heartRateFor } from '@/mock/data';
 import { useSession } from '@/store/session';
 import { colors, spacing, StatusLevel, typography } from '@/theme';
 import { timeAgo } from '@/utils/time';
@@ -19,6 +19,7 @@ export default function PatientHome() {
   const { user, signOut } = useSession();
   const patient = CURRENT_PATIENT;
   const activeEvent = activeEventForPatient(patient.user.id);
+  const hr = heartRateFor(patient.user.id);
 
   return (
     <Screen>
@@ -53,6 +54,17 @@ export default function PatientHome() {
         <MetricTile label="Attention" value={patient.metrics.attention} accent={colors.attention} />
         <MetricTile label="Relaxation" value={patient.metrics.relaxation} accent={colors.relaxation} />
       </View>
+
+      <Text style={[styles.sectionTitle, styles.vitalsTitle]}>Vitals</Text>
+      <VitalCard
+        icon="❤️"
+        label="Heart Rate"
+        value={hr.value}
+        unit="bpm"
+        status={hr.status}
+        statusLabel={hr.label}
+        trend={hr.trend}
+      />
     </Screen>
   );
 }
@@ -71,5 +83,6 @@ const styles = StyleSheet.create({
   alertTitle: { ...typography.heading, color: colors.text },
   alertBody: { ...typography.body, color: colors.textMuted },
   sectionTitle: { ...typography.heading, color: colors.text, marginBottom: spacing.md },
+  vitalsTitle: { marginTop: spacing.xl },
   metrics: { flexDirection: 'row', gap: spacing.md },
 });
