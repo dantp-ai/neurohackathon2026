@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -24,6 +25,15 @@ export default function DemoScreen() {
   const router = useRouter();
   const { shown, domain, total, count, playing, speed, setSpeed, play, pause, reset, loading } =
     useStreamedTrajectory('Trajectory Demo');
+
+  // Auto-start streaming once the trajectory has loaded (showcase behavior).
+  const started = useRef(false);
+  useEffect(() => {
+    if (!started.current && total > 0) {
+      started.current = true;
+      play();
+    }
+  }, [total, play]);
 
   const current = shown.length ? shown[shown.length - 1].health : 0;
   const stage = stageFor(current);

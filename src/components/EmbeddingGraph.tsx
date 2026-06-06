@@ -161,7 +161,7 @@ export function EmbeddingGraph({ points, domain, showEdges = true, k = 3, height
   const transforms = useRSXformBuffer(entries.length, (val, i) => {
     'worklet';
     const e = entries[i];
-    const s = e.appear.value; // 0 → ~1.1 overshoot
+    const s = e.appear.value; // 0 → ~1.1 overshoot (spring bounce-in)
     val.set(s, 0, e.sx - R * s, e.sy - R * s);
   });
 
@@ -199,12 +199,18 @@ export function EmbeddingGraph({ points, domain, showEdges = true, k = 3, height
     <View style={[styles.wrap, { height }]} onLayout={onLayout}>
       {size.w > 0 && (
         <GestureDetector gesture={gesture}>
-          <Canvas style={styles.canvas}>
+          <Canvas style={{ width: size.w, height: size.h }}>
             <Group matrix={matrix}>
               {edgePath && (
                 <Path path={edgePath} style="stroke" strokeWidth={1} color="rgba(120,130,140,0.35)" />
               )}
-              <Atlas image={texture} sprites={sprites} transforms={transforms} colors={pointColors} />
+              <Atlas
+                image={texture}
+                sprites={sprites}
+                transforms={transforms}
+                colors={pointColors}
+                blendMode="modulate"
+              />
             </Group>
           </Canvas>
         </GestureDetector>
