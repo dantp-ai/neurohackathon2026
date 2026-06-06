@@ -25,7 +25,7 @@ export default function PatientHome() {
       <View style={styles.topBar}>
         <Text style={styles.greeting}>Hello, {user?.display_name?.split(' ')[0] ?? 'there'}</Text>
         <Pressable onPress={signOut} hitSlop={8}>
-          <Text style={styles.switch}>Switch</Text>
+          <Text style={styles.switch}>Sign out</Text>
         </Pressable>
       </View>
 
@@ -51,7 +51,7 @@ export default function PatientHome() {
       <View style={styles.metrics}>
         <MetricTile label="Fatigue" value={patient.metrics.fatigue} accent={colors.fatigue} />
         <MetricTile label="Attention" value={patient.metrics.attention} accent={colors.attention} />
-        <MetricTile label="Mood" value={patient.metrics.mood} accent={colors.mood} />
+        <MetricTile label="Relaxation" value={patient.metrics.relaxation} accent={colors.relaxation} />
       </View>
     </Screen>
   );
