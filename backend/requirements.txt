@@ -1,0 +1,7 @@
+# Base ML layer. The foundation model is the `neuroencoder` package (gated weights
+# on HuggingFace — request access + `huggingface-cli login` once).
+neuroencoder>=1.0.1
+scikit-learn>=1.3
+numpy
+joblib
+mne>=1.5          # only needed to load the ds004504 dataset (.set files)

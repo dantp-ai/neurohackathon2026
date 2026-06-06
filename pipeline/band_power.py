@@ -59,7 +59,7 @@ def compute_band_powers(
         )
         for band, (lo, hi) in BANDS.items():
             idx = (freqs >= lo) & (freqs <= hi)
-            band_totals[band] += float(np.trapz(psd[idx], freqs[idx]))
+            band_totals[band] += float(np.trapezoid(psd[idx], freqs[idx]))
 
     # Average across channels
     bp = {b: v / n_ch for b, v in band_totals.items()}

@@ -5,6 +5,7 @@ description = "Add your description here"
 requires-python = ">=3.12"
 dependencies = [
     "mne>=1.12.1",
+    "neuroencoder>=1.0.1",   # EEG foundation model (pulls torch/timm/scikit-learn)
     "numpy>=2.4.6",
     "pylsl>=1.17.0",
     "python-dotenv>=1.2.2",
