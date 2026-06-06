@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+task_heads/
+task_heads_synth/
+*.npz
+*.joblib
+ds004504/
