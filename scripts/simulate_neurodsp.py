@@ -293,6 +293,143 @@ def plot_scenario(
 
 
 # ---------------------------------------------------------------------------
+# Video animation
+# ---------------------------------------------------------------------------
+
+def _compute_metrics(
+    scenario_data: np.ndarray,
+    sfreq: float,
+    window_s: float = 4.0,
+    stride_s: float = 2.0,
+) -> tuple[list[float], list[float], list[float], list[float]]:
+    """Return (times, fatigue, attention, relaxation) lists."""
+    win = int(window_s * sfreq)
+    stride = int(stride_s * sfreq)
+    normalizer = SessionNormalizer(baseline_s=60.0, stride_s=stride_s)
+    times, f_vals, a_vals, r_vals = [], [], [], []
+    for start in range(0, len(scenario_data) - win + 1, stride):
+        window = scenario_data[start:start + win].T
+        raw = compute_band_powers(window, sfreq, window_s=window_s)
+        normalizer.update(raw)
+        norm = normalizer.normalize(raw)
+        times.append((start + win / 2) / sfreq)
+        f_vals.append(norm["fatigue"])
+        a_vals.append(norm["attention"])
+        r_vals.append(norm["relaxation"])
+    return times, f_vals, a_vals, r_vals
+
+
+def animate_scenario(
+    scenario_data: np.ndarray,
+    states: list[BrainState],
+    sfreq: float,
+    out_path: str = "neurodsp_scenario.mp4",
+    target_duration_s: float = 15.0,
+    fps: int = 25,
+) -> None:
+    import matplotlib.pyplot as plt
+    import matplotlib.animation as animation
+    from matplotlib.animation import FFMpegWriter
+    import shutil
+
+    print("Computing metrics for animation...")
+    times, f_vals, a_vals, r_vals = _compute_metrics(scenario_data, sfreq)
+    n_frames = len(times)
+
+    # Target at least target_duration_s — slow down fps if needed
+    actual_fps = min(fps, n_frames / target_duration_s)
+    actual_fps = max(actual_fps, 1)
+    actual_duration = n_frames / actual_fps
+    print(f"  {n_frames} data points → {actual_duration:.1f}s video @ {actual_fps:.1f} fps")
+
+    fig, ax = plt.subplots(figsize=(12, 4.5))
+    fig.patch.set_facecolor("#0f1117")
+    ax.set_facecolor("#0f1117")
+
+    # Pre-draw state shading (static)
+    state_colors = ["#1a1a2e", "#1a2e1a", "#1a1a2e", "#2e1a1a"]
+    t_start = 0.0
+    for state, color in zip(states, state_colors):
+        ax.axvspan(t_start, t_start + state.duration_s, alpha=0.4, color=color, zorder=0)
+        ax.text(
+            t_start + state.duration_s / 2, 1.06, state.name,
+            ha="center", fontsize=8, color="#aaaaaa",
+            transform=ax.get_xaxis_transform(),
+        )
+        t_start += state.duration_s
+
+    total_s = times[-1]
+    ax.set_xlim(0, total_s)
+    ax.set_ylim(-0.05, 1.15)
+    ax.set_xlabel("Time (s)", color="#aaaaaa")
+    ax.set_ylabel("Normalized metric [0–1]", color="#aaaaaa")
+    ax.set_title("EEG Band Power Metrics — neurodsp scenario", color="white", fontsize=11)
+    ax.tick_params(colors="#aaaaaa")
+    for spine in ax.spines.values():
+        spine.set_edgecolor("#333333")
+
+    # Lines (start empty)
+    line_f, = ax.plot([], [], color="#e74c3c", lw=2.0, label="Fatigue")
+    line_a, = ax.plot([], [], color="#3498db", lw=2.0, label="Attention")
+    line_r, = ax.plot([], [], color="#2ecc71", lw=2.0, label="Relaxation")
+    vline = ax.axvline(0, color="white", lw=0.8, alpha=0.5, ls="--")
+
+    # Value readouts
+    val_text = ax.text(
+        0.01, 0.97, "", transform=ax.transAxes,
+        va="top", ha="left", fontsize=9, color="white",
+        fontfamily="monospace",
+    )
+
+    legend = ax.legend(
+        loc="upper right", framealpha=0.2,
+        labelcolor="white", facecolor="#111111",
+    )
+
+    def init():
+        line_f.set_data([], [])
+        line_a.set_data([], [])
+        line_r.set_data([], [])
+        return line_f, line_a, line_r, vline, val_text
+
+    def update(i):
+        i = min(i + 1, n_frames)
+        xs = times[:i]
+        line_f.set_data(xs, f_vals[:i])
+        line_a.set_data(xs, a_vals[:i])
+        line_r.set_data(xs, r_vals[:i])
+        if xs:
+            vline.set_xdata([xs[-1], xs[-1]])
+            val_text.set_text(
+                f"t={xs[-1]:5.1f}s   "
+                f"fatigue={f_vals[i-1]:.2f}  "
+                f"attention={a_vals[i-1]:.2f}  "
+                f"relaxation={r_vals[i-1]:.2f}"
+            )
+        return line_f, line_a, line_r, vline, val_text
+
+    anim = animation.FuncAnimation(
+        fig, update, frames=n_frames, init_func=init,
+        blit=True, interval=1000 / actual_fps,
+    )
+
+    if shutil.which("ffmpeg"):
+        writer = FFMpegWriter(fps=actual_fps, bitrate=1800)
+        ext = ".mp4"
+    else:
+        from matplotlib.animation import PillowWriter
+        writer = PillowWriter(fps=actual_fps)
+        ext = ".gif"
+        out_path = out_path.replace(".mp4", ext)
+
+    out_path = out_path if out_path.endswith(ext) else out_path.rsplit(".", 1)[0] + ext
+    print(f"Saving video → {out_path}  (this may take ~30s...)")
+    anim.save(out_path, writer=writer, dpi=120)
+    plt.close(fig)
+    print(f"Done → {out_path}")
+
+
+# ---------------------------------------------------------------------------
 # LSL streaming
 # ---------------------------------------------------------------------------
 
@@ -364,17 +501,18 @@ SFREQ = 256.0
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--stream",  action="store_true", help="Stream via LSL")
-    parser.add_argument("--verify",  action="store_true", help="Print metric verification table")
-    parser.add_argument("--plot",    action="store_true", help="Save a metrics timeline plot")
-    parser.add_argument("--no-loop", action="store_true", help="Don't loop the scenario (stream once)")
-    parser.add_argument("--sfreq",   type=float, default=SFREQ, help="Sampling rate (default: 256)")
-    parser.add_argument("--channels", type=int, default=4, help="Number of channels (default: 4)")
+    parser.add_argument("--stream",   action="store_true", help="Stream via LSL")
+    parser.add_argument("--verify",   action="store_true", help="Print metric verification table")
+    parser.add_argument("--plot",     action="store_true", help="Save a static PNG timeline")
+    parser.add_argument("--video",    action="store_true", help="Save an animated MP4 video")
+    parser.add_argument("--no-loop",  action="store_true", help="Don't loop the scenario (stream once)")
+    parser.add_argument("--sfreq",    type=float, default=SFREQ, help="Sampling rate (default: 256)")
+    parser.add_argument("--channels", type=int,   default=4,    help="Number of channels (default: 4)")
     args = parser.parse_args()
 
-    if not any([args.stream, args.verify, args.plot]):
+    if not any([args.stream, args.verify, args.plot, args.video]):
         parser.print_help()
-        print("\nExample: uv run scripts/simulate_neurodsp.py --verify --plot")
+        print("\nExample: uv run scripts/simulate_neurodsp.py --verify --video")
         return
 
     n_ch = args.channels
@@ -390,6 +528,9 @@ def main() -> None:
 
     if args.plot:
         plot_scenario(data, DEFAULT_SCENARIO, sfreq=args.sfreq)
+
+    if args.video:
+        animate_scenario(data, DEFAULT_SCENARIO, sfreq=args.sfreq)
 
     if args.stream:
         stream_lsl(data, sfreq=args.sfreq, ch_names=ch_names, loop=not args.no_loop)
