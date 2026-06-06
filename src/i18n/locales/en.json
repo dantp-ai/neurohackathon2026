@@ -111,7 +111,10 @@
     "tapHint": "Tap a point on the map to choose which to label.",
     "anomaly": "anomaly {{score}}%",
     "voiceEmpty": "Could not hear that — try again.",
-    "micDenied": "Microphone permission denied."
+    "micDenied": "Microphone permission denied.",
+    "history": "Label history",
+    "sourceClinician": "Clinician",
+    "sourcePatient": "Patient"
   },
   "labelCat": {
     "seizure": "Seizure",
@@ -136,7 +139,13 @@
     "describePlaceholder": "e.g. I feel a little dizzy",
     "sendCare": "Send to care team",
     "thanks": "Thank you — your care team has been updated.",
-    "currentReadings": "Current readings"
+    "currentReadings": "Current readings",
+    "speak": "Speak",
+    "recording": "Recording… tap to stop",
+    "transcribing": "Transcribing…",
+    "wellness": "Wellness",
+    "brainMap": "Your brain activity",
+    "brainMapSub": "Live readings, mapped over time"
   },
   "feelings": {
     "okay": "I'm okay",

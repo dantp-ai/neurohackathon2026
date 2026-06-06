@@ -1,18 +1,22 @@
 /**
  * EmbeddingGraph — 2D embedding map drawn with Skia.
  *
- * Deliberately simple + reliable: each point is a plain <Circle> drawn directly
- * into the <Canvas>, colored on a healthy → unhealthy scale (green → amber → red).
- * Streaming-friendly: pass a growing `points` array and new points just appear.
- * Optional kNN graph edges via a single <Path>. Optional tap-to-select: tap a
- * point and `onSelectPoint(id)` fires (used by the clinician labeling flow).
- *
- * (We avoided Atlas/RSXform/animated-matrix here — they didn't render reliably on
- * Expo web; per-point <Circle> is the robust path and fine for these counts.)
+ * Points are plain <Circle>s over a faint grid, colored healthy → unhealthy
+ * (green → amber → red). Optional: kNN graph edges, tap-to-select (clinician
+ * labeling), pan + pinch-zoom (`interactive`), and an "adding" pulse aura on the
+ * newest point (`pulseId`, used by the patient view).
  */
-import { useMemo, useState } from 'react';
-import { GestureResponderEvent, LayoutChangeEvent, StyleSheet, View } from 'react-native';
-import { Canvas, Circle, Path, Skia } from '@shopify/react-native-skia';
+import { useEffect, useMemo, useState } from 'react';
+import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
+import { Canvas, Circle, Group, Path, Skia } from '@shopify/react-native-skia';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import {
+  runOnJS,
+  useDerivedValue,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { colors } from '@/theme';
 
@@ -21,24 +25,26 @@ export type Domain = { xMin: number; xMax: number; yMin: number; yMax: number };
 
 export type EmbeddingGraphProps = {
   points: GraphPoint[];
-  /** Stable coordinate domain so streamed points keep fixed positions. */
   domain?: Domain;
   showEdges?: boolean;
-  /** neighbors per node for the kNN graph */
   k?: number;
   height?: number;
-  /** Currently highlighted point id (drawn with a ring). */
   selectedId?: string | null;
-  /** Tap a point to select it. */
   onSelectPoint?: (id: string) => void;
+  /** Enable pan + pinch-zoom. */
+  interactive?: boolean;
+  /** Faint background grid. */
+  grid?: boolean;
+  /** Draw an expanding "adding" aura on this point (e.g. the newest one). */
+  pulseId?: string | null;
 };
 
 const R = 6;
 const PAD = 26;
 const HEALTH_RGB: [number, number, number][] = [
-  [46, 166, 107], // statusGood  #2EA66B
-  [232, 163, 23], // statusWarn  #E8A317
-  [214, 69, 69], // statusBad   #D64545
+  [46, 166, 107],
+  [232, 163, 23],
+  [214, 69, 69],
 ];
 
 function healthColor(t: number): string {
@@ -99,6 +105,9 @@ export function EmbeddingGraph({
   height = 340,
   selectedId,
   onSelectPoint,
+  interactive = false,
+  grid = true,
+  pulseId,
 }: EmbeddingGraphProps) {
   const [size, setSize] = useState({ w: 0, h: height });
   const onLayout = (e: LayoutChangeEvent) =>
@@ -129,51 +138,133 @@ export function EmbeddingGraph({
     return path;
   }, [entries, showEdges, k]);
 
+  const gridPath = useMemo(() => {
+    if (!grid || size.w === 0) return null;
+    const path = Skia.Path.Make();
+    const stepX = (size.w - 2 * PAD) / 6;
+    const stepY = (size.h - 2 * PAD) / 6;
+    for (let i = 0; i <= 6; i++) {
+      const x = PAD + i * stepX;
+      path.moveTo(x, PAD);
+      path.lineTo(x, size.h - PAD);
+      const y = PAD + i * stepY;
+      path.moveTo(PAD, y);
+      path.lineTo(size.w - PAD, y);
+    }
+    return path;
+  }, [grid, size]);
+
   const selected = useMemo(
     () => (selectedId ? entries.find((e) => e.id === selectedId) : undefined),
     [entries, selectedId],
   );
+  const pulsed = useMemo(
+    () => (pulseId ? entries.find((e) => e.id === pulseId) : undefined),
+    [entries, pulseId],
+  );
 
-  const handleTap = (e: GestureResponderEvent) => {
+  // --- pan / zoom ---------------------------------------------------------
+  const scale = useSharedValue(1);
+  const tx = useSharedValue(0);
+  const ty = useSharedValue(0);
+  const startK = useSharedValue(1);
+  const startX = useSharedValue(0);
+  const startY = useSharedValue(0);
+  const transform = useDerivedValue(() => [
+    { translateX: tx.value },
+    { translateY: ty.value },
+    { scale: scale.value },
+  ]);
+
+  const selectNearest = (lx: number, ly: number) => {
     if (!onSelectPoint || entries.length === 0) return;
-    const { locationX, locationY } = e.nativeEvent;
+    const bx = (lx - tx.value) / scale.value;
+    const by = (ly - ty.value) / scale.value;
     let best = -1;
     let bestD = Infinity;
     for (let i = 0; i < entries.length; i++) {
-      const dx = entries[i].sx - locationX;
-      const dy = entries[i].sy - locationY;
+      const dx = entries[i].sx - bx;
+      const dy = entries[i].sy - by;
       const d = dx * dx + dy * dy;
       if (d < bestD) {
         bestD = d;
         best = i;
       }
     }
-    if (best >= 0 && bestD <= 30 * 30) onSelectPoint(entries[best].id);
+    if (best >= 0 && bestD <= (30 / scale.value) ** 2) onSelectPoint(entries[best].id);
   };
 
+  const pan = Gesture.Pan()
+    .onBegin(() => {
+      'worklet';
+      startX.value = tx.value;
+      startY.value = ty.value;
+    })
+    .onUpdate((e) => {
+      'worklet';
+      tx.value = startX.value + e.translationX;
+      ty.value = startY.value + e.translationY;
+    });
+  const pinch = Gesture.Pinch()
+    .onBegin(() => {
+      'worklet';
+      startK.value = scale.value;
+    })
+    .onUpdate((e) => {
+      'worklet';
+      scale.value = Math.max(0.6, Math.min(6, startK.value * e.scale));
+    });
+  const tap = Gesture.Tap()
+    .maxDuration(250)
+    .onEnd((e) => {
+      'worklet';
+      runOnJS(selectNearest)(e.x, e.y);
+    });
+  const gesture = Gesture.Race(tap, Gesture.Simultaneous(pan, pinch));
+
+  // --- adding-pulse aura --------------------------------------------------
+  const pulse = useSharedValue(0);
+  useEffect(() => {
+    pulse.value = 0;
+    pulse.value = withRepeat(withTiming(1, { duration: 1400 }), -1, false);
+  }, [pulse]);
+  const pulseR = useDerivedValue(() => R + 4 + pulse.value * 18);
+  const pulseOpacity = useDerivedValue(() => (1 - pulse.value) * 0.65);
+
+  const canvas = (
+    <Canvas style={{ width: size.w, height: size.h }}>
+      {gridPath && <Path path={gridPath} style="stroke" strokeWidth={1} color="rgba(120,130,140,0.13)" />}
+      <Group transform={interactive ? transform : undefined}>
+        {edgePath && (
+          <Path path={edgePath} style="stroke" strokeWidth={1} color="rgba(120,130,140,0.35)" />
+        )}
+        {entries.map((e, i) => (
+          <Circle key={i} cx={e.sx} cy={e.sy} r={R} color={e.color} />
+        ))}
+        {pulsed && (
+          <Circle
+            cx={pulsed.sx}
+            cy={pulsed.sy}
+            r={pulseR}
+            color={pulsed.color}
+            opacity={pulseOpacity}
+            style="stroke"
+            strokeWidth={2.5}
+          />
+        )}
+        {selected && (
+          <>
+            <Circle cx={selected.sx} cy={selected.sy} r={R + 5} style="stroke" strokeWidth={3} color="#0B1220" />
+            <Circle cx={selected.sx} cy={selected.sy} r={R + 5} style="stroke" strokeWidth={1.5} color="#FFFFFF" />
+          </>
+        )}
+      </Group>
+    </Canvas>
+  );
+
   return (
-    <View
-      style={[styles.wrap, { height }]}
-      onLayout={onLayout}
-      onStartShouldSetResponder={() => !!onSelectPoint}
-      onResponderRelease={handleTap}
-    >
-      {size.w > 0 && (
-        <Canvas style={{ width: size.w, height: size.h }}>
-          {edgePath && (
-            <Path path={edgePath} style="stroke" strokeWidth={1} color="rgba(120,130,140,0.35)" />
-          )}
-          {entries.map((e, i) => (
-            <Circle key={i} cx={e.sx} cy={e.sy} r={R} color={e.color} />
-          ))}
-          {selected && (
-            <>
-              <Circle cx={selected.sx} cy={selected.sy} r={R + 5} style="stroke" strokeWidth={3} color="#0B1220" />
-              <Circle cx={selected.sx} cy={selected.sy} r={R + 5} style="stroke" strokeWidth={1.5} color="#FFFFFF" />
-            </>
-          )}
-        </Canvas>
-      )}
+    <View style={[styles.wrap, { height }]} onLayout={onLayout}>
+      {size.w > 0 && (interactive ? <GestureDetector gesture={gesture}>{canvas}</GestureDetector> : canvas)}
     </View>
   );
 }

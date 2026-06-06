@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { SkiaProvider } from '@/components/SkiaProvider';
 import { SessionProvider } from '@/store/session';
 import { colors } from '@/theme';
 
@@ -22,21 +23,23 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <SessionProvider>
           <StatusBar style="dark" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.background },
-            }}
-          >
-            <Stack.Screen name="index" />
-            <Stack.Screen name="patient" />
-            <Stack.Screen name="caregiver" />
-            <Stack.Screen name="demo" />
-            <Stack.Screen
-              name="checkin"
-              options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-            />
-          </Stack>
+          <SkiaProvider>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.background },
+              }}
+            >
+              <Stack.Screen name="index" />
+              <Stack.Screen name="patient" />
+              <Stack.Screen name="caregiver" />
+              <Stack.Screen name="demo" />
+              <Stack.Screen
+                name="checkin"
+                options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+              />
+            </Stack>
+          </SkiaProvider>
         </SessionProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

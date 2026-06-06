@@ -1,39 +1,109 @@
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  RecordingPresets,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+  useAudioRecorder,
+} from 'expo-audio';
 
-import { Button, Card, MetricTile, Screen, StatusRing, TextField, VitalCard } from '@/components';
+import { AuraRing } from '@/components/AuraRing';
+import { Button, Card, MetricTile, Screen, TextField, VitalCard } from '@/components';
+import { PatientBrainMap } from '@/components/PatientBrainMap';
+import { useSegmentLabels } from '@/hooks/useSegmentLabels';
+import { categorizeText } from '@/lib/categorize';
+import { transcribeAudio } from '@/lib/transcribe';
 import { CURRENT_PATIENT, heartRateFor, scoresFor } from '@/mock/data';
 import { useSession } from '@/store/session';
 import { CheckinResponseValue } from '@/types';
-import { colors, spacing, typography } from '@/theme';
+import { colors, radius, spacing, typography } from '@/theme';
 import { timeAgo } from '@/utils/time';
 
-const FEELINGS: { value: CheckinResponseValue; labelKey: string }[] = [
-  { value: 'ok', labelKey: 'feelings.okay' },
-  { value: 'not_great', labelKey: 'feelings.notGreat' },
-  { value: 'help', labelKey: 'feelings.needHelp' },
+const FEELINGS: { value: CheckinResponseValue; labelKey: string; label: string }[] = [
+  { value: 'ok', labelKey: 'feelings.okay', label: 'Feeling okay' },
+  { value: 'not_great', labelKey: 'feelings.notGreat', label: 'Not great' },
+  { value: 'help', labelKey: 'feelings.needHelp', label: 'Needs help' },
 ];
 
-/** Patient home: status, a check-in you can always use, and current readings. */
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onerror = reject;
+    r.onloadend = () => resolve(String(r.result).split(',')[1] ?? '');
+    r.readAsDataURL(blob);
+  });
+}
+
+/** Patient home: aura wellness ring, a voice-enabled check-in, readings, brain map. */
 export default function PatientHome() {
-  const router = useRouter();
   const { t } = useTranslation();
   const { user, signOut } = useSession();
   const patient = CURRENT_PATIENT;
   const scores = scoresFor(patient.metrics);
   const hr = heartRateFor(patient.user.id);
+  const wellness = (scores.fatigue + scores.attention + scores.relaxation) / 15;
+  const { add: addLabel } = useSegmentLabels(patient.user.display_name);
 
   const [feeling, setFeeling] = useState<CheckinResponseValue | null>(null);
   const [note, setNote] = useState('');
   const [sent, setSent] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
-  const submit = () => {
-    // TODO(backend): write checkin_responses row.
+  const submit = async () => {
+    const text = note.trim();
     setSent(true);
     setNote('');
+    const chosen = feeling;
     setFeeling(null);
+    // Turn the check-in into a patient-sourced label for the clinician to review.
+    try {
+      if (text) {
+        const cat = await categorizeText(text);
+        if (cat) addLabel(cat, null, 'freetext', 'patient');
+      } else if (chosen) {
+        const f = FEELINGS.find((x) => x.value === chosen);
+        if (f) addLabel(f.label, null, 'predefined', 'patient');
+      }
+    } catch {
+      /* best-effort */
+    }
+  };
+
+  const toggleVoice = async () => {
+    if (busy) return;
+    if (recording) {
+      setRecording(false);
+      setBusy(true);
+      try {
+        await recorder.stop();
+        const uri = recorder.uri;
+        if (!uri) throw new Error('no audio');
+        const resp = await fetch(uri);
+        const blob = await resp.blob();
+        const b64 = await blobToBase64(blob);
+        const fmt = uri.split('.').pop()?.toLowerCase() || 'm4a';
+        const text = await transcribeAudio(b64, fmt);
+        if (text) setNote((n) => (n ? `${n} ${text}` : text));
+      } catch {
+        /* ignore */
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+    try {
+      const perm = await requestRecordingPermissionsAsync();
+      if (!perm.granted) return;
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await recorder.prepareToRecordAsync();
+      recorder.record();
+      setRecording(true);
+    } catch {
+      /* ignore */
+    }
   };
 
   return (
@@ -46,7 +116,12 @@ export default function PatientHome() {
       </View>
 
       <View style={styles.ringWrap}>
-        <StatusRing level={patient.status} subtitle={t('caregiver.updated', { time: timeAgo(patient.lastUpdated) })} />
+        <AuraRing
+          score={wellness}
+          level={patient.status}
+          label={t('patient.wellness')}
+          sublabel={t('caregiver.updated', { time: timeAgo(patient.lastUpdated) })}
+        />
       </View>
 
       <Card style={styles.checkinCard}>
@@ -61,9 +136,7 @@ export default function PatientHome() {
                 onPress={() => setFeeling(f.value)}
                 style={[styles.feelingBtn, active && styles.feelingBtnActive]}
               >
-                <Text style={[styles.feelingLabel, active && styles.feelingLabelActive]}>
-                  {t(f.labelKey)}
-                </Text>
+                <Text style={[styles.feelingLabel, active && styles.feelingLabelActive]}>{t(f.labelKey)}</Text>
               </Pressable>
             );
           })}
@@ -76,12 +149,20 @@ export default function PatientHome() {
           multiline
           style={styles.noteInput}
         />
-        <Button
-          title={t('patient.sendCare')}
-          size="lg"
-          disabled={!feeling && !note.trim()}
-          onPress={submit}
-        />
+        <Pressable
+          onPress={toggleVoice}
+          disabled={busy}
+          style={[styles.voiceBtn, recording && styles.voiceBtnRec, busy && styles.voiceBtnBusy]}
+        >
+          {busy ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : (
+            <Text style={[styles.voiceText, recording && styles.voiceTextRec]}>
+              {recording ? `■  ${t('patient.recording')}` : `🎤  ${t('patient.speak')}`}
+            </Text>
+          )}
+        </Pressable>
+        <Button title={t('patient.sendCare')} size="lg" disabled={!feeling && !note.trim()} onPress={submit} />
         {sent ? <Text style={styles.sentNote}>{t('patient.thanks')}</Text> : null}
       </Card>
 
@@ -102,6 +183,10 @@ export default function PatientHome() {
         statusLabel={t(hr.labelKey)}
         trend={hr.trend}
       />
+
+      <View style={styles.mapWrap}>
+        <PatientBrainMap displayName={patient.user.display_name} />
+      </View>
     </Screen>
   );
 }
@@ -115,7 +200,7 @@ const styles = StyleSheet.create({
   },
   greeting: { ...typography.title, color: colors.text },
   switch: { ...typography.label, color: colors.primary },
-  ringWrap: { alignItems: 'center', marginVertical: spacing.lg },
+  ringWrap: { alignItems: 'center', marginVertical: spacing.md },
   checkinCard: {
     gap: spacing.md,
     marginBottom: spacing.xl,
@@ -139,8 +224,20 @@ const styles = StyleSheet.create({
   feelingLabel: { ...typography.label, color: colors.textMuted, textAlign: 'center' },
   feelingLabelActive: { color: colors.primary },
   noteInput: { minHeight: 64, textAlignVertical: 'top' },
+  voiceBtn: {
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+  },
+  voiceBtnRec: { borderColor: colors.statusBad, backgroundColor: '#FDECEC' },
+  voiceBtnBusy: { opacity: 0.6 },
+  voiceText: { ...typography.bodyStrong, color: colors.primary },
+  voiceTextRec: { color: colors.statusBad },
   sentNote: { ...typography.caption, color: colors.statusGood },
   sectionTitle: { ...typography.heading, color: colors.text, marginBottom: spacing.md },
   vitalsTitle: { marginTop: spacing.xl },
   metrics: { flexDirection: 'row', gap: spacing.md },
+  mapWrap: { marginTop: spacing.xl },
 });

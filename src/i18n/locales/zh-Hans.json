@@ -111,7 +111,10 @@
     "tapHint": "点击图谱上的点以选择要标注的片段。",
     "anomaly": "异常 {{score}}%",
     "voiceEmpty": "未能识别 — 请重试。",
-    "micDenied": "麦克风权限被拒绝。"
+    "micDenied": "麦克风权限被拒绝。",
+    "history": "标签历史",
+    "sourceClinician": "临床医生",
+    "sourcePatient": "患者"
   },
   "labelCat": {
     "seizure": "癫痫",
@@ -136,7 +139,13 @@
     "describePlaceholder": "例如：我有点头晕",
     "sendCare": "发送给护理团队",
     "thanks": "谢谢 — 已通知您的护理团队。",
-    "currentReadings": "当前读数"
+    "currentReadings": "当前读数",
+    "speak": "语音",
+    "recording": "录音中…点击停止",
+    "transcribing": "转写中…",
+    "wellness": "健康状态",
+    "brainMap": "您的脑活动",
+    "brainMapSub": "随时间映射的实时读数"
   },
   "feelings": {
     "okay": "我很好",

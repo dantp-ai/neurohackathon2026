@@ -12,6 +12,7 @@ import {
   MetricTile,
   StatusPill,
 } from '@/components';
+import { LabelsReview } from '@/components/LabelsReview';
 import { SegmentLabeler } from '@/components/SegmentLabeler';
 import { SkiaGraph } from '@/components/SkiaGraph';
 import { StreamControls, StreamSource } from '@/components/StreamControls';
@@ -32,11 +33,12 @@ import { CheckinResponseValue, Severity, WellnessMetrics } from '@/types';
 import { colors, radius, spacing, StatusLevel, statusColors, typography } from '@/theme';
 import { timeAgo } from '@/utils/time';
 
-type Tab = 'metrics' | 'map' | 'alerts' | 'messages';
+type Tab = 'metrics' | 'map' | 'alerts' | 'labels' | 'messages';
 const TABS: { key: Tab; labelKey: string }[] = [
   { key: 'metrics', labelKey: 'tabs.metrics' },
   { key: 'map', labelKey: 'tabs.map' },
   { key: 'alerts', labelKey: 'tabs.alerts' },
+  { key: 'labels', labelKey: 'tabs.labels' },
   { key: 'messages', labelKey: 'tabs.messagesShort' },
 ];
 
@@ -121,6 +123,7 @@ export default function PatientDetail() {
           {tab === 'metrics' && <MetricsTab patientId={patient.user.id} metrics={patient.metrics} />}
           {tab === 'map' && <MapTab displayName={patient.user.display_name} />}
           {tab === 'alerts' && <AlertsTab patientId={patient.user.id} />}
+          {tab === 'labels' && <LabelsReview displayName={patient.user.display_name} />}
         </ScrollView>
       )}
     </SafeAreaView>
@@ -232,6 +235,7 @@ function MapTab({ displayName }: { displayName: string }) {
               height={340}
               selectedId={selectedId}
               onSelectPoint={setSelectedId}
+              interactive
             />
             <View style={styles.mapLegend}>
               <Text style={styles.legendText}>{t('embedding.healthy')}</Text>
