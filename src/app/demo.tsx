@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Card } from '@/components';
-import { EmbeddingGraph } from '@/components/EmbeddingGraph';
+import { SkiaGraph } from '@/components/SkiaGraph';
 import { useStreamedTrajectory } from '@/hooks/useStreamedTrajectory';
 import { colors, radius, spacing, statusColors, typography } from '@/theme';
 
@@ -51,7 +51,7 @@ export default function DemoScreen() {
           </Text>
         </View>
 
-        <EmbeddingGraph points={shown} domain={domain} showEdges height={360} />
+        <SkiaGraph points={shown} domain={domain} showEdges height={360} />
 
         {/* progress */}
         <View style={styles.progressTrack}>

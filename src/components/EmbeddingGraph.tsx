@@ -41,7 +41,7 @@ import { colors } from '@/theme';
 export type GraphPoint = { id: string; x: number; y: number; health: number };
 export type Domain = { xMin: number; xMax: number; yMin: number; yMax: number };
 
-type Props = {
+export type EmbeddingGraphProps = {
   points: GraphPoint[];
   /** Stable coordinate domain so streamed points keep fixed positions. */
   domain?: Domain;
@@ -112,7 +112,7 @@ function knnEdges(pos: { x: number; y: number }[], k: number): [number, number][
   return edges;
 }
 
-export function EmbeddingGraph({ points, domain, showEdges = true, k = 3, height = 340 }: Props) {
+export function EmbeddingGraph({ points, domain, showEdges = true, k = 3, height = 340 }: EmbeddingGraphProps) {
   const [size, setSize] = useState({ w: 0, h: height });
   const onLayout = (e: LayoutChangeEvent) =>
     setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height });

@@ -14,7 +14,7 @@ import {
   MetricTile,
   StatusPill,
 } from '@/components';
-import { EmbeddingGraph } from '@/components/EmbeddingGraph';
+import { SkiaGraph } from '@/components/SkiaGraph';
 import { domainOf, segmentsToPoints } from '@/lib/points';
 import {
   CURRENT_CAREGIVER,
@@ -189,7 +189,7 @@ function MapTab({ displayName }: { displayName: string }) {
         <Text style={styles.empty}>{t('embedding.empty')}</Text>
       ) : (
         <>
-          <EmbeddingGraph points={points} domain={domain} showEdges height={340} />
+          <SkiaGraph points={points} domain={domain} showEdges height={340} />
           <View style={styles.mapLegend}>
             <Text style={styles.legendText}>{t('embedding.healthy')}</Text>
             <View style={styles.gradientBar} />
