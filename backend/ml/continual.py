@@ -58,14 +58,16 @@ class SupabaseLabelSource(LabelSource):
     """Pulls caregiver-confirmed labels from the database and joins each to its
     EEG-segment embedding.
 
-    ``task_columns`` maps a task name to the `labels` column holding its class,
-    e.g. ``{"event_type": "event_type", "activity": "activity"}``. Each call
-    returns confirmed labels newer than the last seen ``confirmed_at``:
+    In this schema the real training label is ``labels.activity``, so the default
+    is a single task ``"activity"`` reading that column. ``task_columns`` maps a
+    task name to the `labels` column holding its class if you ever need more than
+    one. Each call returns confirmed labels newer than the last seen
+    ``confirmed_at``:
 
-        SELECT l.confirmed_at, l.<col>, s.embedding
+        SELECT l.confirmed_at, l.activity, s.embedding
         FROM labels l JOIN eeg_segments s ON l.segment_id = s.id
         WHERE l.confirmed_by_caregiver AND l.confirmed_at > :cursor
-              AND l.<col> IS NOT NULL
+              AND l.activity IS NOT NULL
         ORDER BY l.confirmed_at
 
     Integration adapter for the schema in supabase/migrations — wire to a
@@ -73,9 +75,11 @@ class SupabaseLabelSource(LabelSource):
     confirms the exact client API.
     """
 
-    def __init__(self, client, task_columns: dict, since: str = "1970-01-01T00:00:00Z"):
+    def __init__(self, client, task_columns: dict | None = None,
+                 since: str = "1970-01-01T00:00:00Z"):
         self.client = client
-        self.task_columns = dict(task_columns)
+        # `labels.activity` is the only real training label in this schema.
+        self.task_columns = dict(task_columns or {"activity": "activity"})
         self._cursor = since
 
     def fetch_new(self):
