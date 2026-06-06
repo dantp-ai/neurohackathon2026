@@ -15,6 +15,7 @@ import {
   StatusPill,
 } from '@/components';
 import { SkiaGraph } from '@/components/SkiaGraph';
+import { StreamControls } from '@/components/StreamControls';
 import { domainOf, segmentsToPoints } from '@/lib/points';
 import {
   CURRENT_CAREGIVER,
@@ -130,6 +131,7 @@ function MetricsTab({ patientId, metrics }: { patientId: string; metrics: Wellne
   const hrMax = Math.max(...hr.trend) + 5;
   return (
     <View style={{ gap: spacing.lg }}>
+      <StreamControls />
       <View style={styles.metricsRow}>
         <MetricTile label="Energy" score={scores.fatigue} accent={colors.fatigue} />
         <MetricTile label="Attention" score={scores.attention} accent={colors.attention} />

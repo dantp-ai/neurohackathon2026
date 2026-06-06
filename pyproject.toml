@@ -5,6 +5,7 @@ description = "Add your description here"
 requires-python = ">=3.12"
 dependencies = [
     "matplotlib>=3.10.9",
+    "groq>=0.11.0",          # speech-to-text (whisper-large-v3) for voice notes
     "mne>=1.12.1",
     "neurodsp>=2.2.0",       # simulated EEG (sim_combined) for the streaming demo
     "neuroencoder>=1.0.1",   # EEG foundation model (pulls torch/timm/scikit-learn)
