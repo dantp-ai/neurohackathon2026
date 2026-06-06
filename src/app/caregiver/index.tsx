@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar, Card, Screen, StatusPill } from '@/components';
-import { PATIENTS, PatientSummary } from '@/mock/data';
+import { PATIENTS, PatientSummary, scoresFor } from '@/mock/data';
 import { useSession } from '@/store/session';
 import { colors, spacing, StatusLevel, typography } from '@/theme';
 import { timeAgo } from '@/utils/time';
@@ -44,18 +44,38 @@ export default function CaregiverHome() {
 }
 
 function PatientCard({ patient, onPress }: { patient: PatientSummary; onPress: () => void }) {
+  const scores = scoresFor(patient.metrics);
   return (
     <Card onPress={onPress} style={styles.card}>
-      <Avatar name={patient.user.display_name} uri={patient.user.avatar_url} size={52} />
-      <View style={styles.cardMain}>
-        <View style={styles.cardTopRow}>
-          <Text style={styles.name}>{patient.user.display_name}</Text>
-          {patient.hasUnacknowledgedAlert ? <View style={styles.alertDot} /> : null}
+      <View style={styles.cardHeader}>
+        <Avatar name={patient.user.display_name} uri={patient.user.avatar_url} size={52} />
+        <View style={styles.cardMain}>
+          <View style={styles.cardTopRow}>
+            <Text style={styles.name}>{patient.user.display_name}</Text>
+            {patient.hasUnacknowledgedAlert ? <View style={styles.alertDot} /> : null}
+          </View>
+          <Text style={styles.updated}>Updated {timeAgo(patient.lastUpdated)}</Text>
         </View>
-        <Text style={styles.updated}>Updated {timeAgo(patient.lastUpdated)}</Text>
+        <StatusPill level={patient.status} label={STATUS_LABEL[patient.status]} />
       </View>
-      <StatusPill level={patient.status} label={STATUS_LABEL[patient.status]} />
+      <View style={styles.metricsRow}>
+        <MiniMetric label="Energy" score={scores.fatigue} accent={colors.fatigue} />
+        <MiniMetric label="Attention" score={scores.attention} accent={colors.attention} />
+        <MiniMetric label="Relaxation" score={scores.relaxation} accent={colors.relaxation} />
+      </View>
     </Card>
+  );
+}
+
+function MiniMetric({ label, score, accent }: { label: string; score: number; accent: string }) {
+  return (
+    <View style={styles.mini}>
+      <Text style={styles.miniLabel}>{label}</Text>
+      <Text style={[styles.miniValue, { color: accent }]}>
+        {score}
+        <Text style={styles.miniOutOf}> /5</Text>
+      </Text>
+    </View>
   );
 }
 
@@ -70,10 +90,22 @@ const styles = StyleSheet.create({
   subtitle: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
   switch: { ...typography.label, color: colors.primary },
   list: { gap: spacing.md },
-  card: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  card: { gap: spacing.md },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   cardMain: { flex: 1 },
   cardTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   name: { ...typography.heading, color: colors.text },
   alertDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.statusBad },
   updated: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
+  metricsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    paddingTop: spacing.md,
+  },
+  mini: { flex: 1 },
+  miniLabel: { ...typography.caption, color: colors.textMuted },
+  miniValue: { ...typography.heading, marginTop: 2 },
+  miniOutOf: { ...typography.caption, color: colors.textMuted },
 });

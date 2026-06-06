@@ -9,6 +9,8 @@ import { colors, radius, spacing, typography } from '@/theme';
 
 type LabelReviewCardProps = {
   label: Label;
+  /** Start in edit mode (for caregiver-added labels). */
+  initialEditing?: boolean;
 };
 
 /** Editable form values derived from a Label (medications flattened to text). */
@@ -40,9 +42,9 @@ const FIELDS: { key: keyof Draft; label: string }[] = [
  * The caregiver's label review unit: shows an auto-extracted label, lets the
  * caregiver edit any field, and confirms it as ground truth.
  */
-export function LabelReviewCard({ label }: LabelReviewCardProps) {
+export function LabelReviewCard({ label, initialEditing = false }: LabelReviewCardProps) {
   const [draft, setDraft] = useState<Draft>(() => toDraft(label));
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(initialEditing);
   const [confirmed, setConfirmed] = useState(label.confirmed_by_caregiver);
 
   const confirm = () => {

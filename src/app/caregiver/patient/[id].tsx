@@ -5,26 +5,28 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   Avatar,
-  BandPowerBars,
+  Button,
   Card,
   EmbeddingMap,
   LabelReviewCard,
+  LineChart,
   MessageThread,
   MetricTile,
   StatusPill,
 } from '@/components';
 import {
-  bandPowersFor,
   CURRENT_CAREGIVER,
   checkinForEvent,
   eventsForPatient,
+  heartRateFor,
   labelForEvent,
   labelsForPatient,
   patientById,
+  scoresFor,
   timelineFor,
 } from '@/mock/data';
 import { useEegSegments } from '@/hooks/useEegSegments';
-import { CheckinResponseValue, Severity, WellnessMetrics } from '@/types';
+import { CheckinResponseValue, Label, Severity, WellnessMetrics } from '@/types';
 import { colors, radius, spacing, StatusLevel, statusColors, typography } from '@/theme';
 import { timeAgo } from '@/utils/time';
 
@@ -100,9 +102,9 @@ export default function PatientDetail() {
       {/* Content */}
       {tab === 'messages' ? (
         <MessageThread
-          patientId={patient.user.id}
-          caregiverId={CURRENT_CAREGIVER.id}
-          currentUserId={CURRENT_CAREGIVER.id}
+          patientName={patient.user.display_name}
+          caregiverName={CURRENT_CAREGIVER.display_name}
+          senderRole="caregiver"
         />
       ) : (
         <ScrollView contentContainerStyle={styles.content}>
@@ -120,39 +122,46 @@ export default function PatientDetail() {
 
 function MetricsTab({ patientId, metrics }: { patientId: string; metrics: WellnessMetrics }) {
   const series = timelineFor(patientId);
+  const scores = scoresFor(metrics);
+  const hr = heartRateFor(patientId);
+  const hrMin = Math.min(...hr.trend) - 5;
+  const hrMax = Math.max(...hr.trend) + 5;
   return (
     <View style={{ gap: spacing.lg }}>
       <View style={styles.metricsRow}>
-        <MetricTile label="Fatigue" value={metrics.fatigue} accent={colors.fatigue} />
-        <MetricTile label="Attention" value={metrics.attention} accent={colors.attention} />
-        <MetricTile label="Relaxation" value={metrics.relaxation} accent={colors.relaxation} />
+        <MetricTile label="Energy" score={scores.fatigue} accent={colors.fatigue} />
+        <MetricTile label="Attention" score={scores.attention} accent={colors.attention} />
+        <MetricTile label="Relaxation" score={scores.relaxation} accent={colors.relaxation} />
       </View>
 
+      <Text style={styles.sectionTitle}>Last hour</Text>
+      <LineChart
+        series={[
+          { label: 'Energy', color: colors.fatigue, values: series.map((p) => p.fatigue) },
+          { label: 'Attention', color: colors.attention, values: series.map((p) => p.attention) },
+          { label: 'Relaxation', color: colors.relaxation, values: series.map((p) => p.relaxation) },
+        ]}
+      />
+
+      <Text style={styles.sectionTitle}>Vitals</Text>
       <Card style={{ gap: spacing.md }}>
-        <Text style={styles.cardTitle}>Frequency bands</Text>
-        <BandPowerBars powers={bandPowersFor(patientId)} />
-      </Card>
-
-      <Text style={styles.sectionTitle}>Last 12 hours</Text>
-      <Sparkbars label="Fatigue" values={series.map((p) => p.fatigue)} accent={colors.fatigue} />
-      <Sparkbars label="Attention" values={series.map((p) => p.attention)} accent={colors.attention} />
-      <Sparkbars label="Relaxation" values={series.map((p) => p.relaxation)} accent={colors.relaxation} />
-    </View>
-  );
-}
-
-/** Dependency-free mini bar chart: one bar per time point. */
-function Sparkbars({ label, values, accent }: { label: string; values: number[]; accent: string }) {
-  return (
-    <View style={styles.spark}>
-      <Text style={styles.sparkLabel}>{label}</Text>
-      <View style={styles.sparkBars}>
-        {values.map((v, i) => (
-          <View key={i} style={styles.sparkCol}>
-            <View style={[styles.sparkFill, { height: `${Math.max(4, v)}%`, backgroundColor: accent }]} />
+        <View style={styles.vitalHead}>
+          <Text style={styles.vitalName}>❤️  Heart Rate</Text>
+          <View style={styles.vitalRight}>
+            <Text style={[styles.vitalValue, { color: statusColors[hr.status].fg }]}>
+              {hr.value}
+              <Text style={styles.vitalUnit}> bpm</Text>
+            </Text>
+            <StatusPill level={hr.status} label={hr.label} />
           </View>
-        ))}
-      </View>
+        </View>
+        <LineChart
+          series={[{ label: 'Heart rate (bpm)', color: colors.heart, values: hr.trend }]}
+          min={hrMin}
+          max={hrMax}
+          height={120}
+        />
+      </Card>
     </View>
   );
 }
@@ -173,12 +182,23 @@ function MapTab({ displayName }: { displayName: string }) {
 // --- Alerts tab ------------------------------------------------------------
 
 function AlertsTab({ patientId }: { patientId: string }) {
-  const events = eventsForPatient(patientId);
-  if (events.length === 0) {
-    return <Text style={styles.empty}>No alerts for this patient.</Text>;
-  }
+  const [showResolved, setShowResolved] = useState(false);
+  const all = eventsForPatient(patientId);
+  const events = showResolved ? all : all.filter((e) => !e.resolved);
+  const resolvedCount = all.filter((e) => e.resolved).length;
+
   return (
     <View style={{ gap: spacing.md }}>
+      {resolvedCount > 0 ? (
+        <Pressable style={styles.toggleRow} onPress={() => setShowResolved((s) => !s)}>
+          <Text style={styles.toggleLabel}>
+            {showResolved ? 'Hide' : 'Show'} resolved ({resolvedCount})
+          </Text>
+        </Pressable>
+      ) : null}
+      {events.length === 0 ? (
+        <Text style={styles.empty}>No active alerts for this patient.</Text>
+      ) : null}
       {events.map((e) => {
         const level = SEVERITY_LEVEL[e.severity];
         const checkin = checkinForEvent(e.id);
@@ -207,16 +227,41 @@ function AlertsTab({ patientId }: { patientId: string }) {
 
 // --- Labels tab ------------------------------------------------------------
 
+function blankLabel(patientId: string): Label {
+  return {
+    id: `local-${Date.now()}`,
+    patient_id: patientId,
+    segment_id: '',
+    event_id: '',
+    activity: '',
+    medications: [],
+    subjective_state: '',
+    event_type: '',
+    resolution: '',
+    extraction_method: 'caregiver_manual',
+    confidence: 1,
+    confirmed_by_caregiver: false,
+  };
+}
+
 function LabelsTab({ patientId }: { patientId: string }) {
-  const labels = labelsForPatient(patientId);
-  if (labels.length === 0) {
-    return <Text style={styles.empty}>No labels extracted yet.</Text>;
-  }
+  const [added, setAdded] = useState<Label[]>([]);
+  const labels = [...added, ...labelsForPatient(patientId)];
+
   return (
     <View style={{ gap: spacing.lg }}>
-      {labels.map((l) => (
-        <LabelReviewCard key={l.id} label={l} />
-      ))}
+      <Button
+        title="+ Add label"
+        variant="secondary"
+        onPress={() => setAdded((p) => [blankLabel(patientId), ...p])}
+      />
+      {labels.length === 0 ? (
+        <Text style={styles.empty}>No labels yet.</Text>
+      ) : (
+        labels.map((l) => (
+          <LabelReviewCard key={l.id} label={l} initialEditing={l.extraction_method === 'caregiver_manual' && !l.confirmed_by_caregiver} />
+        ))
+      )}
     </View>
   );
 }
@@ -246,6 +291,13 @@ const styles = StyleSheet.create({
   sectionTitle: { ...typography.heading, color: colors.text },
   cardTitle: { ...typography.bodyStrong, color: colors.text },
   empty: { ...typography.body, color: colors.textMuted },
+  toggleRow: { alignSelf: 'flex-start' },
+  toggleLabel: { ...typography.label, color: colors.primary },
+  vitalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  vitalName: { ...typography.bodyStrong, color: colors.text },
+  vitalRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  vitalValue: { ...typography.heading },
+  vitalUnit: { ...typography.label, color: colors.textMuted },
   spark: { gap: spacing.sm },
   sparkLabel: { ...typography.label, color: colors.textMuted },
   sparkBars: { flexDirection: 'row', alignItems: 'flex-end', height: 64, gap: 4 },

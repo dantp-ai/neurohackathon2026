@@ -36,10 +36,12 @@ export const colors = {
   statusBad: '#D64545',
   statusBadBg: '#FBE6E6',
 
-  // Metric accents (Fatigue / Attention / Relaxation)
-  fatigue: '#7A5AF0',
-  attention: '#208AEF',
-  relaxation: '#0EA5A0',
+  // Metric + chart accents — colorblind-safe (Okabe-Ito palette), distinguishable
+  // across deuteranopia / protanopia / tritanopia.
+  fatigue: '#E69F00', // orange  (shown as "Energy")
+  attention: '#0072B2', // blue
+  relaxation: '#009E73', // bluish green
+  heart: '#D55E00', // vermillion (heart-rate line)
 } as const;
 
 /** Colors for the EEG frequency-band spectrum (delta → gamma). */

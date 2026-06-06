@@ -10,43 +10,35 @@ import {
   View,
 } from 'react-native';
 
-import { messagesForThread } from '@/mock/data';
-import { Message } from '@/types';
+import { useMessages } from '@/hooks/useMessages';
+import { Role } from '@/types';
 import { colors, radius, spacing, typography } from '@/theme';
 import { clockTime } from '@/utils/time';
 
 type MessageThreadProps = {
-  patientId: string;
-  caregiverId: string;
+  patientName: string;
+  caregiverName: string;
   /** Who is composing — determines bubble alignment and sender_id on send. */
-  currentUserId: string;
+  senderRole: Role;
 };
 
 /**
- * Shared WhatsApp-style conversation, used by both the patient Messages tab and
- * the caregiver detail Messages tab (mirrored). Local-only sending for now.
+ * Shared patient <-> caregiver conversation, backed by Supabase + Realtime so
+ * the two sides sync live. Used by both the patient Messages tab and the
+ * caregiver detail Messages tab.
  */
-export function MessageThread({ patientId, caregiverId, currentUserId }: MessageThreadProps) {
-  const [messages, setMessages] = useState<Message[]>(() =>
-    messagesForThread(patientId, caregiverId),
+export function MessageThread({ patientName, caregiverName, senderRole }: MessageThreadProps) {
+  const { messages, loading, error, senderId, send } = useMessages(
+    patientName,
+    caregiverName,
+    senderRole,
   );
   const [draft, setDraft] = useState('');
 
-  const send = () => {
+  const onSend = () => {
     const content = draft.trim();
     if (!content) return;
-    // TODO(backend): insert into messages.
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `local-${Date.now()}`,
-        patient_id: patientId,
-        caregiver_id: caregiverId,
-        sender_id: currentUserId,
-        content,
-        created_at: new Date().toISOString(),
-      },
-    ]);
+    send(content);
     setDraft('');
   };
 
@@ -60,8 +52,10 @@ export function MessageThread({ patientId, caregiverId, currentUserId }: Message
         contentContainerStyle={styles.thread}
         keyboardShouldPersistTaps="handled"
       >
+        {loading ? <Text style={styles.status}>Connecting…</Text> : null}
+        {error ? <Text style={styles.status}>Can’t reach the server: {error}</Text> : null}
         {messages.map((m) => {
-          const mine = m.sender_id === currentUserId;
+          const mine = m.sender_id === senderId;
           return (
             <View key={m.id} style={[styles.bubbleRow, mine ? styles.rowMine : styles.rowTheirs]}>
               <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}>
@@ -85,7 +79,7 @@ export function MessageThread({ patientId, caregiverId, currentUserId }: Message
           multiline
         />
         <Pressable
-          onPress={send}
+          onPress={onSend}
           disabled={!draft.trim()}
           style={[styles.sendBtn, !draft.trim() && styles.sendDisabled]}
         >
@@ -99,6 +93,7 @@ export function MessageThread({ patientId, caregiverId, currentUserId }: Message
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   thread: { padding: spacing.lg, gap: spacing.sm },
+  status: { ...typography.caption, color: colors.textMuted, textAlign: 'center', paddingVertical: spacing.sm },
   bubbleRow: { flexDirection: 'row' },
   rowMine: { justifyContent: 'flex-end' },
   rowTheirs: { justifyContent: 'flex-start' },

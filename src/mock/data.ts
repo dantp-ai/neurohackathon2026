@@ -46,31 +46,78 @@ export interface PatientSummary {
   relationship: string;
 }
 
+// ---------------------------------------------------------------------------
+// 1–5 scoring (5 = best). Metrics are stored 0–100; we display them on a simple
+// 1–5 scale where 1 is worst and 5 is best. Fatigue is inverted (more fatigued
+// = worse = lower score).
+// ---------------------------------------------------------------------------
+
+/** Continuous 1–5 score (good for smooth line charts). `invert` for fatigue. */
+export const scoreOf = (value: number, invert = false): number => {
+  const goodness = invert ? 100 - value : value;
+  return Math.max(1, Math.min(5, 1 + (goodness / 100) * 4));
+};
+
+/** Rounded 1–5 score for tiles. */
+export const tileScore = (value: number, invert = false): number =>
+  Math.round(scoreOf(value, invert));
+
+export interface MetricScores {
+  fatigue: number;
+  attention: number;
+  relaxation: number;
+}
+
+export const scoresFor = (m: WellnessMetrics): MetricScores => ({
+  fatigue: tileScore(m.fatigue, true),
+  attention: tileScore(m.attention),
+  relaxation: tileScore(m.relaxation),
+});
+
+/**
+ * A patient's overall condition is derived from their metric scores: we take
+ * the average of the three 1–5 scores. >= 3.5 → good, >= 2.5 → watch, else
+ * urgent. (This is what "determines the condition" on the caregiver list.)
+ */
+export const deriveStatus = (m: WellnessMetrics): StatusLevel => {
+  const s = scoresFor(m);
+  const avg = (s.fatigue + s.attention + s.relaxation) / 3;
+  return avg >= 3.5 ? 'good' : avg >= 2.5 ? 'warn' : 'bad';
+};
+
+const mk = (
+  user: User,
+  metrics: WellnessMetrics,
+  lastUpdated: string,
+  hasUnacknowledgedAlert: boolean,
+): PatientSummary => ({
+  user,
+  metrics,
+  lastUpdated,
+  hasUnacknowledgedAlert,
+  status: deriveStatus(metrics),
+  relationship: 'Patient',
+});
+
 export const PATIENTS: PatientSummary[] = [
-  {
-    user: { id: 'p1', role: 'patient', display_name: 'Margaret Chen', avatar_url: null },
-    status: 'warn',
-    metrics: { fatigue: 68, attention: 54, relaxation: 42 },
-    lastUpdated: minutesAgo(3),
-    hasUnacknowledgedAlert: true,
-    relationship: 'Patient',
-  },
-  {
-    user: { id: 'p2', role: 'patient', display_name: 'Harold Müller', avatar_url: null },
-    status: 'good',
-    metrics: { fatigue: 22, attention: 81, relaxation: 58 },
-    lastUpdated: minutesAgo(11),
-    hasUnacknowledgedAlert: false,
-    relationship: 'Patient',
-  },
-  {
-    user: { id: 'p3', role: 'patient', display_name: 'Sofia Rossi', avatar_url: null },
-    status: 'bad',
-    metrics: { fatigue: 84, attention: 38, relaxation: 30 },
-    lastUpdated: minutesAgo(1),
-    hasUnacknowledgedAlert: true,
-    relationship: 'Patient',
-  },
+  mk(
+    { id: 'p1', role: 'patient', display_name: 'Margaret Chen', avatar_url: null },
+    { fatigue: 68, attention: 54, relaxation: 42 },
+    minutesAgo(3),
+    true,
+  ),
+  mk(
+    { id: 'p2', role: 'patient', display_name: 'Harold Müller', avatar_url: null },
+    { fatigue: 22, attention: 81, relaxation: 58 },
+    minutesAgo(11),
+    false,
+  ),
+  mk(
+    { id: 'p3', role: 'patient', display_name: 'Sofia Rossi', avatar_url: null },
+    { fatigue: 84, attention: 38, relaxation: 30 },
+    minutesAgo(1),
+    true,
+  ),
 ];
 
 export const patientById = (id: string): PatientSummary | undefined =>
@@ -80,28 +127,35 @@ export const patientById = (id: string): PatientSummary | undefined =>
 export const CURRENT_PATIENT = patientById(CURRENT_PATIENT_ID)!;
 
 // ---------------------------------------------------------------------------
-// Wellness timeline (last ~12 hours, oldest → newest)
+// Wellness timeline — last hour (sliding window), oldest → newest.
+// Values are continuous 1–5 scores (5 = best) so the line chart is smooth.
 // ---------------------------------------------------------------------------
 
-export interface TimelinePoint extends WellnessMetrics {
+export interface TimelinePoint {
   t: string; // ISO timestamp
+  fatigue: number; // 1–5 score
+  attention: number; // 1–5 score
+  relaxation: number; // 1–5 score
 }
 
+const POINTS_PER_HOUR = 20; // ~one reading every 3 minutes
+
 export const timelineFor = (patientId: string): TimelinePoint[] => {
-  // Deterministic pseudo-series so the chart looks plausible per patient.
+  const m = patientById(patientId)?.metrics ?? { fatigue: 50, attention: 50, relaxation: 50 };
   const seed = patientId.charCodeAt(1) || 1;
-  return Array.from({ length: 12 }).map((_, i) => {
-    const wobble = Math.sin((i + seed) / 2) * 18;
+  return Array.from({ length: POINTS_PER_HOUR }).map((_, i) => {
+    const minsAgo = Math.round(((POINTS_PER_HOUR - 1 - i) / (POINTS_PER_HOUR - 1)) * 60);
+    const wob = Math.sin((i + seed) / 2);
     return {
-      t: hoursAgo(11 - i),
-      fatigue: clamp(50 + wobble + seed * 3),
-      attention: clamp(60 - wobble),
-      relaxation: clamp(45 + wobble / 2),
+      t: minutesAgo(minsAgo),
+      fatigue: clampScore(scoreOf(m.fatigue, true) + wob * 0.6),
+      attention: clampScore(scoreOf(m.attention) - wob * 0.5),
+      relaxation: clampScore(scoreOf(m.relaxation) + wob * 0.4),
     };
   });
 };
 
-const clamp = (n: number) => Math.max(2, Math.min(98, Math.round(n)));
+const clampScore = (n: number) => Math.max(1, Math.min(5, n));
 
 /**
  * Mock relative band powers for a patient, derived from their displayed metrics
@@ -126,6 +180,38 @@ export const bandPowersFor = (patientId: string): BandPowers => {
     beta: raw.beta / sum,
     gamma: raw.gamma / sum,
   };
+};
+
+// ---------------------------------------------------------------------------
+// Vitals (wearable modalities — non-EEG). Heart rate is the first; SpO2 /
+// temperature / respiration could follow the same shape. Simulated here in a
+// natural range, derived from the patient's status so the demo stays coherent
+// (a distressed patient also shows an elevated, more irregular heart rate).
+// ---------------------------------------------------------------------------
+
+export interface HeartRateReading {
+  value: number; // current bpm
+  trend: number[]; // recent readings (oldest → newest)
+  status: StatusLevel; // normal / elevated coloring
+  label: string; // 'Normal' | 'Elevated' | 'Low'
+}
+
+/** Resting baseline bpm by wellness status. */
+const HR_BASE: Record<StatusLevel, number> = { good: 68, warn: 80, bad: 96 };
+
+export const heartRateFor = (patientId: string): HeartRateReading => {
+  const status = patientById(patientId)?.status ?? 'good';
+  const base = HR_BASE[status];
+  const amp = status === 'bad' ? 10 : status === 'warn' ? 6 : 3; // more variability when unwell
+  const seed = patientId.charCodeAt(1) || 1;
+  const trend = Array.from({ length: 12 }).map((_, i) =>
+    Math.round(base + Math.sin((i + seed) / 1.5) * amp + ((i * seed) % 3) - 1),
+  );
+  const value = trend[trend.length - 1];
+  const level: StatusLevel =
+    value > 110 || value < 45 ? 'bad' : value > 100 || value < 55 ? 'warn' : 'good';
+  const label = value > 100 ? 'Elevated' : value < 55 ? 'Low' : 'Normal';
+  return { value, trend, status: level, label };
 };
 
 // ---------------------------------------------------------------------------
@@ -195,6 +281,21 @@ export const checkinForEvent = (eventId: string): CheckinResponse | undefined =>
 
 export const LABELS: Label[] = [
   {
+    id: 'l0',
+    patient_id: 'p1',
+    segment_id: 'seg2',
+    event_id: 'e0',
+    activity: 'Morning walk',
+    medications: ['Aspirin 81mg'],
+    subjective_state: 'Felt steady and clear-headed',
+    event_type: 'Routine check',
+    resolution: 'No action needed',
+    extraction_method: 'caregiver_manual',
+    confidence: 1,
+    confirmed_by_caregiver: true,
+    confirmed_at: hoursAgo(20),
+  },
+  {
     id: 'l1',
     patient_id: 'p1',
     segment_id: 'seg9',
@@ -244,6 +345,8 @@ export const ACTIVITY_LOGS: ActivityLog[] = [
 export const MEDICATION_LOGS: MedicationLog[] = [
   { id: 'm1', patient_id: 'p1', medication_name: 'Amlodipine 5mg', taken_at: hoursAgo(1) },
   { id: 'm2', patient_id: 'p1', medication_name: 'Vitamin D', taken_at: hoursAgo(9) },
+  { id: 'm3', patient_id: 'p1', medication_name: 'Aspirin 81mg', taken_at: hoursAgo(13) },
+  { id: 'm4', patient_id: 'p1', medication_name: 'Metformin 500mg', taken_at: hoursAgo(25) },
 ];
 
 export const activityLogsForPatient = (patientId: string): ActivityLog[] =>
@@ -255,6 +358,10 @@ export const medicationLogsForPatient = (patientId: string): MedicationLog[] =>
   MEDICATION_LOGS.filter((l) => l.patient_id === patientId).sort(
     (a, b) => +new Date(b.taken_at) - +new Date(a.taken_at),
   );
+
+/** Distinct medication names this patient has logged before (for the dropdown). */
+export const previousMedicationNames = (patientId: string): string[] =>
+  Array.from(new Set(medicationLogsForPatient(patientId).map((l) => l.medication_name)));
 
 // ---------------------------------------------------------------------------
 // Messages (patient <-> caregiver threads)
