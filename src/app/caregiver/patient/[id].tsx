@@ -6,13 +6,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Avatar,
   Button,
+  Card,
   EmbeddingMap,
   LabelReviewCard,
   LineChart,
   MessageThread,
   MetricTile,
   StatusPill,
-  VitalCard,
 } from '@/components';
 import {
   CURRENT_CAREGIVER,
@@ -124,6 +124,8 @@ function MetricsTab({ patientId, metrics }: { patientId: string; metrics: Wellne
   const series = timelineFor(patientId);
   const scores = scoresFor(metrics);
   const hr = heartRateFor(patientId);
+  const hrMin = Math.min(...hr.trend) - 5;
+  const hrMax = Math.max(...hr.trend) + 5;
   return (
     <View style={{ gap: spacing.lg }}>
       <View style={styles.metricsRow}>
@@ -131,16 +133,6 @@ function MetricsTab({ patientId, metrics }: { patientId: string; metrics: Wellne
         <MetricTile label="Attention" score={scores.attention} accent={colors.attention} />
         <MetricTile label="Relaxation" score={scores.relaxation} accent={colors.relaxation} />
       </View>
-
-      <VitalCard
-        icon="❤️"
-        label="Heart Rate"
-        value={hr.value}
-        unit="bpm"
-        status={hr.status}
-        statusLabel={hr.label}
-        trend={hr.trend}
-      />
 
       <Text style={styles.sectionTitle}>Last hour</Text>
       <LineChart
@@ -150,6 +142,26 @@ function MetricsTab({ patientId, metrics }: { patientId: string; metrics: Wellne
           { label: 'Relaxation', color: colors.relaxation, values: series.map((p) => p.relaxation) },
         ]}
       />
+
+      <Text style={styles.sectionTitle}>Vitals</Text>
+      <Card style={{ gap: spacing.md }}>
+        <View style={styles.vitalHead}>
+          <Text style={styles.vitalName}>❤️  Heart Rate</Text>
+          <View style={styles.vitalRight}>
+            <Text style={[styles.vitalValue, { color: statusColors[hr.status].fg }]}>
+              {hr.value}
+              <Text style={styles.vitalUnit}> bpm</Text>
+            </Text>
+            <StatusPill level={hr.status} label={hr.label} />
+          </View>
+        </View>
+        <LineChart
+          series={[{ label: 'Heart rate (bpm)', color: colors.statusBad, values: hr.trend }]}
+          min={hrMin}
+          max={hrMax}
+          height={120}
+        />
+      </Card>
     </View>
   );
 }
@@ -281,6 +293,11 @@ const styles = StyleSheet.create({
   empty: { ...typography.body, color: colors.textMuted },
   toggleRow: { alignSelf: 'flex-start' },
   toggleLabel: { ...typography.label, color: colors.primary },
+  vitalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  vitalName: { ...typography.bodyStrong, color: colors.text },
+  vitalRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  vitalValue: { ...typography.heading },
+  vitalUnit: { ...typography.label, color: colors.textMuted },
   spark: { gap: spacing.sm },
   sparkLabel: { ...typography.label, color: colors.textMuted },
   sparkBars: { flexDirection: 'row', alignItems: 'flex-end', height: 64, gap: 4 },

@@ -35,8 +35,15 @@ export function LineChart({ series, min = 1, max = 5, height = 160 }: LineChartP
   const x = (i: number, n: number) => padL + (n <= 1 ? 0 : (i / (n - 1)) * plotW);
   const y = (v: number) => padV + (1 - (v - min) / (max - min)) * plotH;
 
-  const ticks = [];
-  for (let t = min; t <= max; t++) ticks.push(t);
+  // ~5 evenly spaced, rounded tick values (works for both the 1–5 scale and bpm).
+  const NUM_TICKS = 5;
+  const ticks = Array.from(
+    new Set(
+      Array.from({ length: NUM_TICKS }, (_, i) =>
+        Math.round(min + (i / (NUM_TICKS - 1)) * (max - min)),
+      ),
+    ),
+  );
 
   return (
     <View>

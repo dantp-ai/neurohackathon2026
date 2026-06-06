@@ -3,12 +3,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Card, MetricTile, Screen, StatusRing, TextField, VitalCard } from '@/components';
-import {
-  activeEventForPatient,
-  CURRENT_PATIENT,
-  heartRateFor,
-  scoresFor,
-} from '@/mock/data';
+import { CURRENT_PATIENT, heartRateFor, scoresFor } from '@/mock/data';
 import { useSession } from '@/store/session';
 import { CheckinResponseValue } from '@/types';
 import { colors, spacing, typography } from '@/theme';
@@ -25,7 +20,6 @@ export default function PatientHome() {
   const router = useRouter();
   const { user, signOut } = useSession();
   const patient = CURRENT_PATIENT;
-  const activeEvent = activeEventForPatient(patient.user.id);
   const scores = scoresFor(patient.metrics);
   const hr = heartRateFor(patient.user.id);
 
@@ -53,18 +47,11 @@ export default function PatientHome() {
         <StatusRing level={patient.status} subtitle={`Updated ${timeAgo(patient.lastUpdated)}`} />
       </View>
 
-      {activeEvent ? (
-        <Card style={styles.alertCard}>
-          <Text style={styles.alertTitle}>We noticed something</Text>
-          <Text style={styles.alertBody}>
-            Your readings changed a little. There’s no need to worry — just let us know how you’re
-            doing below.
-          </Text>
-        </Card>
-      ) : null}
-
       <Card style={styles.checkinCard}>
-        <Text style={styles.sectionTitle}>How are you feeling right now?</Text>
+        <Text style={styles.checkinTitle}>Check-in</Text>
+        <Text style={styles.checkinPrompt}>
+          How are you feeling right now? Please report any symptoms.
+        </Text>
         <View style={styles.feelingRow}>
           {FEELINGS.map((f) => {
             const active = feeling === f.value;
@@ -129,10 +116,15 @@ const styles = StyleSheet.create({
   greeting: { ...typography.title, color: colors.text },
   switch: { ...typography.label, color: colors.primary },
   ringWrap: { alignItems: 'center', marginVertical: spacing.lg },
-  alertCard: { gap: spacing.sm, marginBottom: spacing.lg, borderColor: colors.statusWarn },
-  alertTitle: { ...typography.heading, color: colors.text },
-  alertBody: { ...typography.body, color: colors.textMuted },
-  checkinCard: { gap: spacing.md, marginBottom: spacing.xl },
+  checkinCard: {
+    gap: spacing.md,
+    marginBottom: spacing.xl,
+    borderColor: colors.primary,
+    borderWidth: 2,
+    backgroundColor: '#F2F8FF',
+  },
+  checkinTitle: { ...typography.heading, color: colors.primary },
+  checkinPrompt: { ...typography.body, color: colors.text },
   feelingRow: { flexDirection: 'row', gap: spacing.sm },
   feelingBtn: {
     flex: 1,
