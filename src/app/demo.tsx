@@ -61,7 +61,7 @@ export default function DemoScreen() {
           </Text>
         </View>
 
-        <SkiaGraph points={shown} domain={domain} showEdges height={360} />
+        <SkiaGraph points={shown} domain={domain} showEdges={false} height={360} />
 
         {/* progress */}
         <View style={styles.progressTrack}>
