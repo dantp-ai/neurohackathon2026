@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -7,13 +8,14 @@ import {
   Avatar,
   Button,
   Card,
-  EmbeddingMap,
   LabelReviewCard,
   LineChart,
   MessageThread,
   MetricTile,
   StatusPill,
 } from '@/components';
+import { EmbeddingGraph } from '@/components/EmbeddingGraph';
+import { domainOf, segmentsToPoints } from '@/lib/points';
 import {
   CURRENT_CAREGIVER,
   checkinForEvent,
@@ -169,14 +171,34 @@ function MetricsTab({ patientId, metrics }: { patientId: string; metrics: Wellne
 // --- Map tab ---------------------------------------------------------------
 
 function MapTab({ displayName }: { displayName: string }) {
+  const { t } = useTranslation();
   const { segments, loading, error } = useEegSegments(displayName);
+  const points = useMemo(() => segmentsToPoints(segments), [segments]);
+  const domain = useMemo(() => domainOf(points), [points]);
   if (loading) {
-    return <Text style={styles.empty}>Loading embedding map…</Text>;
+    return <Text style={styles.empty}>{t('common.loading')}</Text>;
   }
   if (error) {
     return <Text style={styles.empty}>Could not load EEG segments: {error}</Text>;
   }
-  return <EmbeddingMap segments={segments} />;
+  return (
+    <Card style={{ gap: spacing.md }}>
+      <Text style={styles.sectionTitle}>{t('embedding.title')}</Text>
+      <Text style={styles.empty}>{t('embedding.subtitle', { count: points.length })}</Text>
+      {points.length === 0 ? (
+        <Text style={styles.empty}>{t('embedding.empty')}</Text>
+      ) : (
+        <>
+          <EmbeddingGraph points={points} domain={domain} showEdges height={340} />
+          <View style={styles.mapLegend}>
+            <Text style={styles.legendText}>{t('embedding.healthy')}</Text>
+            <View style={styles.gradientBar} />
+            <Text style={styles.legendText}>{t('embedding.unhealthy')}</Text>
+          </View>
+        </>
+      )}
+    </Card>
+  );
 }
 
 // --- Alerts tab ------------------------------------------------------------
@@ -316,4 +338,16 @@ const styles = StyleSheet.create({
   alertTime: { ...typography.bodyStrong, color: colors.text },
   alertCheckin: { ...typography.body, color: colors.text },
   alertSummary: { ...typography.body, color: colors.textMuted, fontStyle: 'italic' },
+  mapLegend: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  legendText: { ...typography.caption, color: colors.textMuted },
+  gradientBar: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.statusWarn,
+    borderLeftWidth: 24,
+    borderLeftColor: colors.statusGood,
+    borderRightWidth: 24,
+    borderRightColor: colors.statusBad,
+  },
 });

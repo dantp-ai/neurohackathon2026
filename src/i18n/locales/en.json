@@ -1,0 +1,76 @@
+{
+  "app": {
+    "name": "NeuroMonitor",
+    "tagline": "EEG wellbeing monitoring for care teams"
+  },
+  "common": {
+    "back": "Back",
+    "loading": "Loading…",
+    "language": "Language",
+    "patients": "Patients",
+    "send": "Send",
+    "confirm": "Confirm",
+    "edit": "Edit"
+  },
+  "login": {
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "demoAccounts": "Demo accounts",
+    "streamingDemo": "Streaming demo",
+    "streamingDemoSub": "Watch the brain drift healthy → dementia"
+  },
+  "tabs": {
+    "metrics": "Metrics",
+    "map": "Map",
+    "alerts": "Alerts",
+    "messages": "Messages",
+    "labels": "Labels",
+    "home": "Home",
+    "activity": "Activity",
+    "medicine": "Medicine"
+  },
+  "metrics": {
+    "energy": "Energy",
+    "attention": "Attention",
+    "relaxation": "Relaxation",
+    "lastHour": "Last hour",
+    "vitals": "Vitals",
+    "heartRate": "Heart Rate"
+  },
+  "demo": {
+    "title": "Cognitive decline over time",
+    "subtitle": "Each point is a 30-second EEG window, embedded live by the foundation model. Watch the brain state drift from healthy to dementia as time accelerates.",
+    "healthy": "Healthy",
+    "earlyChange": "Early change",
+    "decline": "Cognitive decline",
+    "dementia": "Dementia-like",
+    "windows": "{{count}} / {{total}} windows",
+    "speed": "Speed",
+    "play": "Play",
+    "pause": "Pause",
+    "replay": "Replay",
+    "reset": "Reset",
+    "noData": "No trajectory data. Run the seed_trajectory script."
+  },
+  "embedding": {
+    "title": "Embedding map",
+    "subtitle": "{{count}} segments · color = anomaly score",
+    "healthy": "Healthy",
+    "unhealthy": "Unhealthy",
+    "empty": "No embedding data yet."
+  },
+  "stream": {
+    "title": "Data streaming",
+    "eeg": "EEG",
+    "heartRate": "Heart rate",
+    "vitals": "Vitals",
+    "start": "Start",
+    "stop": "Stop",
+    "source": "Source",
+    "live": "Live device",
+    "simulated": "Simulated (neurodsp)",
+    "streaming": "Streaming",
+    "stopped": "Stopped"
+  }
+}

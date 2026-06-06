@@ -1,0 +1,76 @@
+{
+  "app": {
+    "name": "NeuroMonitor",
+    "tagline": "面向护理团队的脑电健康监测"
+  },
+  "common": {
+    "back": "返回",
+    "loading": "加载中…",
+    "language": "语言",
+    "patients": "患者",
+    "send": "发送",
+    "confirm": "确认",
+    "edit": "编辑"
+  },
+  "login": {
+    "email": "邮箱",
+    "password": "密码",
+    "signIn": "登录",
+    "demoAccounts": "演示账户",
+    "streamingDemo": "流式演示",
+    "streamingDemoSub": "观察大脑从健康漂移至痴呆"
+  },
+  "tabs": {
+    "metrics": "指标",
+    "map": "图谱",
+    "alerts": "警报",
+    "messages": "消息",
+    "labels": "标签",
+    "home": "主页",
+    "activity": "活动",
+    "medicine": "用药"
+  },
+  "metrics": {
+    "energy": "精力",
+    "attention": "注意力",
+    "relaxation": "放松度",
+    "lastHour": "最近一小时",
+    "vitals": "生命体征",
+    "heartRate": "心率"
+  },
+  "demo": {
+    "title": "认知衰退随时间的变化",
+    "subtitle": "每个点代表一个 30 秒的脑电窗口，由基础模型实时生成嵌入。随着时间加速，观察大脑状态从健康漂移到痴呆。",
+    "healthy": "健康",
+    "earlyChange": "早期变化",
+    "decline": "认知衰退",
+    "dementia": "类痴呆",
+    "windows": "{{count}} / {{total}} 个窗口",
+    "speed": "速度",
+    "play": "播放",
+    "pause": "暂停",
+    "replay": "重播",
+    "reset": "重置",
+    "noData": "暂无轨迹数据。请运行 seed_trajectory 脚本。"
+  },
+  "embedding": {
+    "title": "嵌入图谱",
+    "subtitle": "{{count}} 个片段 · 颜色 = 异常评分",
+    "healthy": "健康",
+    "unhealthy": "不健康",
+    "empty": "暂无嵌入数据。"
+  },
+  "stream": {
+    "title": "数据流",
+    "eeg": "脑电",
+    "heartRate": "心率",
+    "vitals": "生命体征",
+    "start": "开始",
+    "stop": "停止",
+    "source": "数据源",
+    "live": "实时设备",
+    "simulated": "模拟（neurodsp）",
+    "streaming": "传输中",
+    "stopped": "已停止"
+  }
+}

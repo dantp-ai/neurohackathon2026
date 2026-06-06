@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -10,10 +11,11 @@ import {
 } from 'react-native';
 
 import { Button, Card, Screen, TextField } from '@/components';
+import { LanguageToggle } from '@/components/LanguageToggle';
 import { DEMO_ACCOUNTS, DemoAccount } from '@/mock/accounts';
 import { useSession } from '@/store/session';
 import { Role } from '@/types';
-import { colors, spacing, typography } from '@/theme';
+import { colors, radius, spacing, typography } from '@/theme';
 
 /**
  * Login screen. Backed by seeded demo accounts (see `@/mock/accounts`); looks
@@ -22,6 +24,7 @@ import { colors, spacing, typography } from '@/theme';
  */
 export default function Login() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { signInWithEmail } = useSession();
 
   const [email, setEmail] = useState('');
@@ -53,14 +56,17 @@ export default function Login() {
   return (
     <Screen>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={styles.topBar}>
+          <LanguageToggle />
+        </View>
         <View style={styles.header}>
-          <Text style={styles.brand}>NeuroMonitor</Text>
-          <Text style={styles.tagline}>EEG wellbeing monitoring for care teams</Text>
+          <Text style={styles.brand}>{t('app.name')}</Text>
+          <Text style={styles.tagline}>{t('app.tagline')}</Text>
         </View>
 
         <Card style={styles.card}>
           <TextField
-            label="Email"
+            label={t('login.email')}
             value={email}
             onChangeText={(t) => {
               setEmail(t);
@@ -73,7 +79,7 @@ export default function Login() {
             textContentType="emailAddress"
           />
           <TextField
-            label="Password"
+            label={t('login.password')}
             value={password}
             onChangeText={(t) => {
               setPassword(t);
@@ -86,13 +92,13 @@ export default function Login() {
             onSubmitEditing={submit}
             returnKeyType="go"
           />
-          <Button title="Sign in" size="lg" onPress={submit} style={styles.signIn} />
+          <Button title={t('login.signIn')} size="lg" onPress={submit} style={styles.signIn} />
         </Card>
 
         <View style={styles.demoSection}>
           <View style={styles.dividerRow}>
             <View style={styles.divider} />
-            <Text style={styles.dividerText}>Demo accounts</Text>
+            <Text style={styles.dividerText}>{t('login.demoAccounts')}</Text>
             <View style={styles.divider} />
           </View>
           {DEMO_ACCOUNTS.map((account) => (
@@ -105,6 +111,14 @@ export default function Login() {
               <Text style={styles.demoArrow}>›</Text>
             </Pressable>
           ))}
+
+          <Pressable style={styles.demoCta} onPress={() => router.push('/demo')}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.demoCtaLabel}>▶  {t('login.streamingDemo')}</Text>
+              <Text style={styles.demoCtaSub}>{t('login.streamingDemoSub')}</Text>
+            </View>
+            <Text style={styles.demoCtaArrow}>›</Text>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </Screen>
@@ -112,7 +126,8 @@ export default function Login() {
 }
 
 const styles = StyleSheet.create({
-  header: { marginTop: spacing.xxxl, marginBottom: spacing.xl, alignItems: 'center' },
+  topBar: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: spacing.lg },
+  header: { marginTop: spacing.xl, marginBottom: spacing.xl, alignItems: 'center' },
   brand: { ...typography.display, color: colors.primary },
   tagline: {
     ...typography.body,
@@ -139,4 +154,16 @@ const styles = StyleSheet.create({
   },
   demoLabel: { ...typography.bodyStrong, color: colors.text },
   demoArrow: { ...typography.heading, color: colors.textMuted },
+  demoCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    marginTop: spacing.sm,
+  },
+  demoCtaLabel: { ...typography.bodyStrong, color: colors.textInverse },
+  demoCtaSub: { ...typography.caption, color: colors.textInverse, opacity: 0.85, marginTop: 2 },
+  demoCtaArrow: { ...typography.heading, color: colors.textInverse },
 });
