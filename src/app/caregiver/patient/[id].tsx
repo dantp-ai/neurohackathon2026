@@ -3,8 +3,18 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Avatar, LabelReviewCard, MessageThread, MetricTile, StatusPill } from '@/components';
 import {
+  Avatar,
+  BandPowerBars,
+  Card,
+  EmbeddingMap,
+  LabelReviewCard,
+  MessageThread,
+  MetricTile,
+  StatusPill,
+} from '@/components';
+import {
+  bandPowersFor,
   CURRENT_CAREGIVER,
   checkinForEvent,
   eventsForPatient,
@@ -13,13 +23,15 @@ import {
   patientById,
   timelineFor,
 } from '@/mock/data';
-import { CheckinResponseValue, Severity } from '@/types';
+import { useEegSegments } from '@/hooks/useEegSegments';
+import { CheckinResponseValue, Severity, WellnessMetrics } from '@/types';
 import { colors, radius, spacing, StatusLevel, statusColors, typography } from '@/theme';
 import { timeAgo } from '@/utils/time';
 
-type Tab = 'metrics' | 'alerts' | 'messages' | 'labels';
+type Tab = 'metrics' | 'map' | 'alerts' | 'messages' | 'labels';
 const TABS: { key: Tab; label: string }[] = [
   { key: 'metrics', label: 'Metrics' },
+  { key: 'map', label: 'Map' },
   { key: 'alerts', label: 'Alerts' },
   { key: 'messages', label: 'Messages' },
   { key: 'labels', label: 'Labels' },
@@ -95,6 +107,7 @@ export default function PatientDetail() {
       ) : (
         <ScrollView contentContainerStyle={styles.content}>
           {tab === 'metrics' && <MetricsTab patientId={patient.user.id} metrics={patient.metrics} />}
+          {tab === 'map' && <MapTab displayName={patient.user.display_name} />}
           {tab === 'alerts' && <AlertsTab patientId={patient.user.id} />}
           {tab === 'labels' && <LabelsTab patientId={patient.user.id} />}
         </ScrollView>
@@ -105,19 +118,25 @@ export default function PatientDetail() {
 
 // --- Metrics tab -----------------------------------------------------------
 
-function MetricsTab({ patientId, metrics }: { patientId: string; metrics: { fatigue: number; attention: number; mood: number } }) {
+function MetricsTab({ patientId, metrics }: { patientId: string; metrics: WellnessMetrics }) {
   const series = timelineFor(patientId);
   return (
     <View style={{ gap: spacing.lg }}>
       <View style={styles.metricsRow}>
         <MetricTile label="Fatigue" value={metrics.fatigue} accent={colors.fatigue} />
         <MetricTile label="Attention" value={metrics.attention} accent={colors.attention} />
-        <MetricTile label="Mood" value={metrics.mood} accent={colors.mood} />
+        <MetricTile label="Relaxation" value={metrics.relaxation} accent={colors.relaxation} />
       </View>
+
+      <Card style={{ gap: spacing.md }}>
+        <Text style={styles.cardTitle}>Frequency bands</Text>
+        <BandPowerBars powers={bandPowersFor(patientId)} />
+      </Card>
+
       <Text style={styles.sectionTitle}>Last 12 hours</Text>
       <Sparkbars label="Fatigue" values={series.map((p) => p.fatigue)} accent={colors.fatigue} />
       <Sparkbars label="Attention" values={series.map((p) => p.attention)} accent={colors.attention} />
-      <Sparkbars label="Mood" values={series.map((p) => p.mood)} accent={colors.mood} />
+      <Sparkbars label="Relaxation" values={series.map((p) => p.relaxation)} accent={colors.relaxation} />
     </View>
   );
 }
@@ -136,6 +155,19 @@ function Sparkbars({ label, values, accent }: { label: string; values: number[];
       </View>
     </View>
   );
+}
+
+// --- Map tab ---------------------------------------------------------------
+
+function MapTab({ displayName }: { displayName: string }) {
+  const { segments, loading, error } = useEegSegments(displayName);
+  if (loading) {
+    return <Text style={styles.empty}>Loading embedding map…</Text>;
+  }
+  if (error) {
+    return <Text style={styles.empty}>Could not load EEG segments: {error}</Text>;
+  }
+  return <EmbeddingMap segments={segments} />;
 }
 
 // --- Alerts tab ------------------------------------------------------------
@@ -212,6 +244,7 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg },
   metricsRow: { flexDirection: 'row', gap: spacing.md },
   sectionTitle: { ...typography.heading, color: colors.text },
+  cardTitle: { ...typography.bodyStrong, color: colors.text },
   empty: { ...typography.body, color: colors.textMuted },
   spark: { gap: spacing.sm },
   sparkLabel: { ...typography.label, color: colors.textMuted },

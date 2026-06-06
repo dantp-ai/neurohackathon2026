@@ -30,6 +30,19 @@ export interface CareRelationship {
 // Backend writes, frontend reads
 // ---------------------------------------------------------------------------
 
+/**
+ * Relative spectral power per EEG frequency band (fractions that sum to ~1).
+ * Streamed alongside the computed metrics so the frontend can render a live
+ * spectrum without owning any metric formula (those stay backend-side).
+ */
+export interface BandPowers {
+  delta: number; // 1–4 Hz   (deep slow waves)
+  theta: number; // 4–8 Hz   (drowsiness)
+  alpha: number; // 8–12 Hz  (relaxed wakefulness)
+  beta: number; // 12–30 Hz  (active focus)
+  gamma: number; // 30+ Hz   (high-level processing)
+}
+
 export interface EegSegment {
   id: string;
   patient_id: string;
@@ -38,9 +51,17 @@ export interface EegSegment {
   duration_s: number;
   fatigue: number; // 0.0–1.0
   attention: number; // 0.0–1.0
-  mood: number; // 0.0–1.0
+  mood: number; // 0.0–1.0  (live DB column)
   anomaly_score: number; // 0.0–1.0
+  // 2D UMAP projection of the embedding; null until backend has run UMAP.
+  umap_x: number | null;
+  umap_y: number | null;
   // `embedding` (pgvector) is intentionally omitted — frontend never reads it.
+  //
+  // TODO(backend): align the DB with the display layer — migrate `mood` ->
+  // `relaxation` and add `band_powers: BandPowers` (raw spectral power the
+  // frontend already renders). Until then the UI shows a `relaxation` tile
+  // from WellnessMetrics and band powers are mocked (see `bandPowersFor`).
 }
 
 export type EventType = 'anomaly' | 'manual' | 'scheduled';
@@ -140,5 +161,5 @@ export interface PushToken {
 export interface WellnessMetrics {
   fatigue: number; // 0–100
   attention: number; // 0–100
-  mood: number; // 0–100
+  relaxation: number; // 0–100
 }
