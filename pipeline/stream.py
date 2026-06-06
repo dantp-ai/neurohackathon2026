@@ -289,3 +289,98 @@ class FileStream(EEGStream):
         self._cursor = end
         self._t += len(samples) / self._sfreq
         return samples, timestamps
+
+
+# ---------------------------------------------------------------------------
+# Synthetic EEG via the neurodsp package (more realistic than SimulatedStream)
+# ---------------------------------------------------------------------------
+
+class NeurodspStream(EEGStream):
+    """
+    Realistic synthetic EEG via `neurodsp`: 1/f aperiodic activity + bursty
+    alpha & theta oscillations (sim_combined). The `health` preset shifts the
+    spectrum so the embedding/anomaly drift is visible:
+      • healthy   — shallow 1/f, strong ~10 Hz alpha, low theta
+      • unhealthy — steeper 1/f (slowing), weaker/slower alpha, stronger theta
+
+    Pre-generates `duration_s` of signal per channel at init, then replays it
+    in real time (looping), like FileStream.
+    """
+
+    PRESETS = {
+        "healthy": {"exponent": -1.3, "alpha": 10.0, "alpha_var": 1.2, "theta_var": 0.4},
+        "unhealthy": {"exponent": -2.2, "alpha": 8.0, "alpha_var": 0.4, "theta_var": 1.3},
+    }
+    TEN20 = ["Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2",
+             "F7", "F8", "T3", "T4", "T5", "T6", "Fz", "Cz", "Pz"]
+
+    def __init__(
+        self,
+        sfreq: float = 250.0,
+        n_channels: int = 19,
+        health: str = "healthy",
+        duration_s: float = 300.0,
+        seed: int = 0,
+    ):
+        from neurodsp.sim import set_random_seed, sim_combined
+
+        p = self.PRESETS.get(health, self.PRESETS["healthy"])
+        self._sfreq = float(sfreq)
+        self._channel_names = (
+            self.TEN20[:n_channels] if n_channels <= len(self.TEN20)
+            else [f"ch{i}" for i in range(n_channels)]
+        )
+        self._n_channels = len(self._channel_names)
+
+        chans = []
+        for ci in range(self._n_channels):
+            set_random_seed(seed + ci)  # independent noise per channel
+            components = {
+                "sim_powerlaw": {"exponent": p["exponent"], "f_range": (0.5, None)},
+                "sim_bursty_oscillation": [
+                    {"freq": p["alpha"], "enter_burst": 0.2, "leave_burst": 0.3},
+                    {"freq": 6.0, "enter_burst": 0.15, "leave_burst": 0.4},
+                ],
+            }
+            variances = [1.0, p["alpha_var"], p["theta_var"]]  # must match expanded components
+            chans.append(sim_combined(duration_s, self._sfreq, components, variances).astype(np.float32))
+
+        self._data = (np.stack(chans, axis=1) * 20.0).astype(np.float32)  # [n_samples, n_ch], ~µV
+        self._cursor = 0
+        self._t = 0.0
+        self._last_pull = time.monotonic()
+        print(
+            f"NeurodspStream: {self._n_channels} ch @ {self._sfreq:g} Hz, "
+            f"preset='{health}', {duration_s:.0f}s buffer"
+        )
+
+    @property
+    def sfreq(self) -> float:
+        return self._sfreq
+
+    @property
+    def n_channels(self) -> int:
+        return self._n_channels
+
+    @property
+    def channel_names(self) -> list[str]:
+        return self._channel_names
+
+    def pull_chunk(
+        self, timeout: float = 0.1, max_samples: int = 128
+    ) -> tuple[np.ndarray, list[float]]:
+        now = time.monotonic()
+        elapsed = now - self._last_pull
+        if elapsed < timeout:
+            time.sleep(timeout - elapsed)
+        self._last_pull = time.monotonic()
+
+        n = max(1, min(int(elapsed * self._sfreq), max_samples))
+        if self._cursor >= len(self._data):
+            self._cursor = 0
+        end = min(self._cursor + n, len(self._data))
+        samples = self._data[self._cursor:end]
+        timestamps = [self._t + i / self._sfreq for i in range(len(samples))]
+        self._cursor = end
+        self._t += len(samples) / self._sfreq
+        return samples, timestamps

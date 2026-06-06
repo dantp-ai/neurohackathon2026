@@ -32,7 +32,7 @@ from supabase import create_client
 from pipeline.band_power import SessionNormalizer, compute_band_powers
 from pipeline.embedding import run_anomaly_detection, run_embedding, set_channel_names
 from pipeline.projector import UmapProjector
-from pipeline.stream import FileStream, LSLStream, SimulatedStream
+from pipeline.stream import FileStream, LSLStream, NeurodspStream, SimulatedStream
 
 load_dotenv(Path(__file__).parents[1] / ".env.local")
 
@@ -58,6 +58,8 @@ def _severity(score: float) -> str:
 def _build_stream(args: argparse.Namespace):
     if args.file:
         return FileStream(args.file)
+    if args.neurodsp:
+        return NeurodspStream(sfreq=250.0, n_channels=19, health=args.health)
     if args.simulate:
         return SimulatedStream(
             sfreq=256.0,
@@ -193,7 +195,15 @@ def main() -> None:
         "--file", default=None, metavar="PATH",
         help="Replay a recorded file (e.g. data/sub-001_task-eyesclosed_eeg.set)",
     )
+    source.add_argument(
+        "--neurodsp", action="store_true",
+        help="Generate realistic synthetic EEG with the neurodsp package",
+    )
 
+    parser.add_argument(
+        "--health", default="healthy", choices=["healthy", "unhealthy"],
+        help="(neurodsp mode) spectral preset: healthy or unhealthy/slowing",
+    )
     parser.add_argument(
         "--anomaly-every", default=120, type=int, metavar="SECONDS",
         help="(simulate mode) Inject a theta-burst anomaly every N seconds (default: 120)",

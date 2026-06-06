@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
     "matplotlib>=3.10.9",
     "mne>=1.12.1",
+    "neurodsp>=2.2.0",       # simulated EEG (sim_combined) for the streaming demo
     "neuroencoder>=1.0.1",   # EEG foundation model (pulls torch/timm/scikit-learn)
     "numpy>=2.4.6",
     "pylsl>=1.17.0",
