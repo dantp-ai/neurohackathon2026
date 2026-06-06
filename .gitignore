@@ -41,3 +41,6 @@ example
 # generated native folders
 /ios
 /android
+
+# large shared data bundle — distributed manually (Drive), kept git-independent
+neurohackathon_trajectory_full.npz

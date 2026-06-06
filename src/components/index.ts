@@ -1,4 +1,5 @@
 export { Avatar } from './Avatar';
+export { BandPowerBars } from './BandPowerBars';
 export { Button } from './Button';
 export { Card } from './Card';
 export { EmbeddingMap } from './EmbeddingMap';
@@ -8,3 +9,4 @@ export { MetricTile } from './MetricTile';
 export { Screen } from './Screen';
 export { StatusPill } from './StatusPill';
 export { StatusRing } from './StatusRing';
+export { TextField } from './TextField';

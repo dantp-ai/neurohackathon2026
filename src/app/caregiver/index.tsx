@@ -26,7 +26,7 @@ export default function CaregiverHome() {
           <Text style={styles.subtitle}>{user?.display_name}</Text>
         </View>
         <Pressable onPress={signOut} hitSlop={8}>
-          <Text style={styles.switch}>Switch</Text>
+          <Text style={styles.switch}>Sign out</Text>
         </Pressable>
       </View>
 
