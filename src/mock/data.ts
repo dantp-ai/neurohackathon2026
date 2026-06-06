@@ -118,6 +118,13 @@ export const PATIENTS: PatientSummary[] = [
     minutesAgo(1),
     true,
   ),
+  // Live neurodsp stream target (see pipeline/controller.py / `npm run stream`).
+  mk(
+    { id: 'p4', role: 'patient', display_name: 'Live Monitor', avatar_url: null },
+    { fatigue: 50, attention: 50, relaxation: 50 },
+    minutesAgo(0),
+    false,
+  ),
 ];
 
 export const patientById = (id: string): PatientSummary | undefined =>

@@ -6,16 +6,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   Avatar,
-  Button,
   Card,
-  LabelReviewCard,
   LineChart,
   MessageThread,
   MetricTile,
   StatusPill,
 } from '@/components';
+import { SegmentLabeler } from '@/components/SegmentLabeler';
 import { SkiaGraph } from '@/components/SkiaGraph';
-import { StreamControls } from '@/components/StreamControls';
+import { StreamControls, StreamSource } from '@/components/StreamControls';
 import { domainOf, segmentsToPoints } from '@/lib/points';
 import {
   CURRENT_CAREGIVER,
@@ -23,23 +22,22 @@ import {
   eventsForPatient,
   heartRateFor,
   labelForEvent,
-  labelsForPatient,
   patientById,
   scoresFor,
   timelineFor,
 } from '@/mock/data';
 import { useEegSegments } from '@/hooks/useEegSegments';
-import { CheckinResponseValue, Label, Severity, WellnessMetrics } from '@/types';
+import { useLiveWave } from '@/hooks/useLiveWave';
+import { CheckinResponseValue, Severity, WellnessMetrics } from '@/types';
 import { colors, radius, spacing, StatusLevel, statusColors, typography } from '@/theme';
 import { timeAgo } from '@/utils/time';
 
-type Tab = 'metrics' | 'map' | 'alerts' | 'messages' | 'labels';
+type Tab = 'metrics' | 'map' | 'alerts' | 'messages';
 const TABS: { key: Tab; labelKey: string }[] = [
   { key: 'metrics', labelKey: 'tabs.metrics' },
   { key: 'map', labelKey: 'tabs.map' },
   { key: 'alerts', labelKey: 'tabs.alerts' },
-  { key: 'messages', labelKey: 'tabs.messages' },
-  { key: 'labels', labelKey: 'tabs.labels' },
+  { key: 'messages', labelKey: 'tabs.messagesShort' },
 ];
 
 const SEVERITY_LEVEL: Record<Severity, StatusLevel> = {
@@ -123,7 +121,6 @@ export default function PatientDetail() {
           {tab === 'metrics' && <MetricsTab patientId={patient.user.id} metrics={patient.metrics} />}
           {tab === 'map' && <MapTab displayName={patient.user.display_name} />}
           {tab === 'alerts' && <AlertsTab patientId={patient.user.id} />}
-          {tab === 'labels' && <LabelsTab patientId={patient.user.id} />}
         </ScrollView>
       )}
     </SafeAreaView>
@@ -137,11 +134,35 @@ function MetricsTab({ patientId, metrics }: { patientId: string; metrics: Wellne
   const series = timelineFor(patientId);
   const scores = scoresFor(metrics);
   const hr = heartRateFor(patientId);
-  const hrMin = Math.min(...hr.trend) - 5;
-  const hrMax = Math.max(...hr.trend) + 5;
+
+  const [eeg, setEeg] = useState(true);
+  const [vitals, setVitals] = useState(true);
+  const [source, setSource] = useState<StreamSource>('simulated');
+
+  // Live scrolling waveforms while "streaming"; frozen historical when stopped.
+  const energy = useLiveWave(eeg, { base: 2.6, amp: 1.1, phase: 0 });
+  const attention = useLiveWave(eeg, { base: 3.0, amp: 1.0, phase: 2 });
+  const relax = useLiveWave(eeg, { base: 2.8, amp: 0.9, phase: 4 });
+  const hrWave = useLiveWave(vitals, { base: hr.value, amp: 9, phase: 1, periodMs: 600 });
+
+  const energyVals = eeg ? energy : series.map((p) => p.fatigue);
+  const attentionVals = eeg ? attention : series.map((p) => p.attention);
+  const relaxVals = eeg ? relax : series.map((p) => p.relaxation);
+  const hrVals = vitals ? hrWave : hr.trend;
+  const hrMin = vitals ? hr.value - 18 : Math.min(...hr.trend) - 5;
+  const hrMax = vitals ? hr.value + 18 : Math.max(...hr.trend) + 5;
+  const hrNow = Math.round(hrVals[hrVals.length - 1] ?? hr.value);
+
   return (
     <View style={{ gap: spacing.lg }}>
-      <StreamControls />
+      <StreamControls
+        eeg={eeg}
+        vitals={vitals}
+        source={source}
+        onToggleEeg={() => setEeg((v) => !v)}
+        onToggleVitals={() => setVitals((v) => !v)}
+        onSource={setSource}
+      />
       <View style={styles.metricsRow}>
         <MetricTile label={t('metrics.energy')} score={scores.fatigue} accent={colors.fatigue} />
         <MetricTile label={t('metrics.attention')} score={scores.attention} accent={colors.attention} />
@@ -151,9 +172,9 @@ function MetricsTab({ patientId, metrics }: { patientId: string; metrics: Wellne
       <Text style={styles.sectionTitle}>{t('metrics.lastHour')}</Text>
       <LineChart
         series={[
-          { label: t('metrics.energy'), color: colors.fatigue, values: series.map((p) => p.fatigue) },
-          { label: t('metrics.attention'), color: colors.attention, values: series.map((p) => p.attention) },
-          { label: t('metrics.relaxation'), color: colors.relaxation, values: series.map((p) => p.relaxation) },
+          { label: t('metrics.energy'), color: colors.fatigue, values: energyVals },
+          { label: t('metrics.attention'), color: colors.attention, values: attentionVals },
+          { label: t('metrics.relaxation'), color: colors.relaxation, values: relaxVals },
         ]}
       />
 
@@ -163,14 +184,14 @@ function MetricsTab({ patientId, metrics }: { patientId: string; metrics: Wellne
           <Text style={styles.vitalName}>{`❤️  ${t('metrics.heartRate')}`}</Text>
           <View style={styles.vitalRight}>
             <Text style={[styles.vitalValue, { color: statusColors[hr.status].fg }]}>
-              {hr.value}
+              {hrNow}
               <Text style={styles.vitalUnit}>{` ${t('common.bpm')}`}</Text>
             </Text>
             <StatusPill level={hr.status} label={t(hr.labelKey)} />
           </View>
         </View>
         <LineChart
-          series={[{ label: `${t('metrics.heartRate')} (${t('common.bpm')})`, color: colors.heart, values: hr.trend }]}
+          series={[{ label: `${t('metrics.heartRate')} (${t('common.bpm')})`, color: colors.heart, values: hrVals }]}
           min={hrMin}
           max={hrMax}
           height={120}
@@ -187,6 +208,8 @@ function MapTab({ displayName }: { displayName: string }) {
   const { segments, loading, error } = useEegSegments(displayName);
   const points = useMemo(() => segmentsToPoints(segments), [segments]);
   const domain = useMemo(() => domainOf(points), [points]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
   if (loading) {
     return <Text style={styles.empty}>{t('common.loading')}</Text>;
   }
@@ -194,22 +217,32 @@ function MapTab({ displayName }: { displayName: string }) {
     return <Text style={styles.empty}>{t('caregiver.segmentsError', { error })}</Text>;
   }
   return (
-    <Card style={{ gap: spacing.md }}>
-      <Text style={styles.sectionTitle}>{t('embedding.title')}</Text>
-      <Text style={styles.empty}>{t('embedding.subtitle', { count: points.length })}</Text>
-      {points.length === 0 ? (
-        <Text style={styles.empty}>{t('embedding.empty')}</Text>
-      ) : (
-        <>
-          <SkiaGraph points={points} domain={domain} showEdges height={340} />
-          <View style={styles.mapLegend}>
-            <Text style={styles.legendText}>{t('embedding.healthy')}</Text>
-            <View style={styles.gradientBar} />
-            <Text style={styles.legendText}>{t('embedding.unhealthy')}</Text>
-          </View>
-        </>
-      )}
-    </Card>
+    <View style={{ gap: spacing.lg }}>
+      <Card style={{ gap: spacing.md }}>
+        <Text style={styles.sectionTitle}>{t('embedding.title')}</Text>
+        <Text style={styles.empty}>{t('embedding.subtitle', { count: points.length })}</Text>
+        {points.length === 0 ? (
+          <Text style={styles.empty}>{t('embedding.empty')}</Text>
+        ) : (
+          <>
+            <SkiaGraph
+              points={points}
+              domain={domain}
+              showEdges
+              height={340}
+              selectedId={selectedId}
+              onSelectPoint={setSelectedId}
+            />
+            <View style={styles.mapLegend}>
+              <Text style={styles.legendText}>{t('embedding.healthy')}</Text>
+              <View style={styles.gradientBar} />
+              <Text style={styles.legendText}>{t('embedding.unhealthy')}</Text>
+            </View>
+          </>
+        )}
+      </Card>
+      <SegmentLabeler displayName={displayName} segments={segments} selectedId={selectedId} />
+    </View>
   );
 }
 
@@ -256,48 +289,6 @@ function AlertsTab({ patientId }: { patientId: string }) {
           </View>
         );
       })}
-    </View>
-  );
-}
-
-// --- Labels tab ------------------------------------------------------------
-
-function blankLabel(patientId: string): Label {
-  return {
-    id: `local-${Date.now()}`,
-    patient_id: patientId,
-    segment_id: '',
-    event_id: '',
-    activity: '',
-    medications: [],
-    subjective_state: '',
-    event_type: '',
-    resolution: '',
-    extraction_method: 'caregiver_manual',
-    confidence: 1,
-    confirmed_by_caregiver: false,
-  };
-}
-
-function LabelsTab({ patientId }: { patientId: string }) {
-  const { t } = useTranslation();
-  const [added, setAdded] = useState<Label[]>([]);
-  const labels = [...added, ...labelsForPatient(patientId)];
-
-  return (
-    <View style={{ gap: spacing.lg }}>
-      <Button
-        title={t('labels.add')}
-        variant="secondary"
-        onPress={() => setAdded((p) => [blankLabel(patientId), ...p])}
-      />
-      {labels.length === 0 ? (
-        <Text style={styles.empty}>{t('labels.none')}</Text>
-      ) : (
-        labels.map((l) => (
-          <LabelReviewCard key={l.id} label={l} initialEditing={l.extraction_method === 'caregiver_manual' && !l.confirmed_by_caregiver} />
-        ))
-      )}
     </View>
   );
 }

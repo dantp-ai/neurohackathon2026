@@ -188,7 +188,9 @@ class SimulatedStream(EEGStream):
         # Pace to real-time
         if elapsed < timeout:
             time.sleep(timeout - elapsed)
-        self._last_pull = time.monotonic()
+            now = time.monotonic()
+            elapsed = now - self._last_pull
+        self._last_pull = now
 
         n = max(1, min(int(elapsed * self._sfreq), max_samples))
         samples = self._generate(n)
@@ -275,7 +277,9 @@ class FileStream(EEGStream):
         elapsed = now - self._last_pull
         if elapsed < timeout:
             time.sleep(timeout - elapsed)
-        self._last_pull = time.monotonic()
+            now = time.monotonic()
+            elapsed = now - self._last_pull
+        self._last_pull = now
 
         n = max(1, min(int(elapsed * self._sfreq), max_samples))
 
@@ -373,7 +377,9 @@ class NeurodspStream(EEGStream):
         elapsed = now - self._last_pull
         if elapsed < timeout:
             time.sleep(timeout - elapsed)
-        self._last_pull = time.monotonic()
+            now = time.monotonic()
+            elapsed = now - self._last_pull
+        self._last_pull = now
 
         n = max(1, min(int(elapsed * self._sfreq), max_samples))
         if self._cursor >= len(self._data):

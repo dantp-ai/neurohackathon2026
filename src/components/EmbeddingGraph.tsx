@@ -4,13 +4,14 @@
  * Deliberately simple + reliable: each point is a plain <Circle> drawn directly
  * into the <Canvas>, colored on a healthy → unhealthy scale (green → amber → red).
  * Streaming-friendly: pass a growing `points` array and new points just appear.
- * Optional kNN graph edges via a single <Path>.
+ * Optional kNN graph edges via a single <Path>. Optional tap-to-select: tap a
+ * point and `onSelectPoint(id)` fires (used by the clinician labeling flow).
  *
  * (We avoided Atlas/RSXform/animated-matrix here — they didn't render reliably on
  * Expo web; per-point <Circle> is the robust path and fine for these counts.)
  */
 import { useMemo, useState } from 'react';
-import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
+import { GestureResponderEvent, LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import { Canvas, Circle, Path, Skia } from '@shopify/react-native-skia';
 
 import { colors } from '@/theme';
@@ -26,6 +27,10 @@ export type EmbeddingGraphProps = {
   /** neighbors per node for the kNN graph */
   k?: number;
   height?: number;
+  /** Currently highlighted point id (drawn with a ring). */
+  selectedId?: string | null;
+  /** Tap a point to select it. */
+  onSelectPoint?: (id: string) => void;
 };
 
 const R = 6;
@@ -60,7 +65,7 @@ function defaultDomain(points: GraphPoint[]): Domain {
   return { xMin, xMax, yMin, yMax };
 }
 
-type Entry = { sx: number; sy: number; color: string };
+type Entry = { id: string; sx: number; sy: number; color: string };
 
 function knnEdges(pos: { sx: number; sy: number }[], k: number): [number, number][] {
   const seen = new Set<string>();
@@ -86,7 +91,15 @@ function knnEdges(pos: { sx: number; sy: number }[], k: number): [number, number
   return edges;
 }
 
-export function EmbeddingGraph({ points, domain, showEdges = false, k = 3, height = 340 }: EmbeddingGraphProps) {
+export function EmbeddingGraph({
+  points,
+  domain,
+  showEdges = false,
+  k = 3,
+  height = 340,
+  selectedId,
+  onSelectPoint,
+}: EmbeddingGraphProps) {
   const [size, setSize] = useState({ w: 0, h: height });
   const onLayout = (e: LayoutChangeEvent) =>
     setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height });
@@ -99,6 +112,7 @@ export function EmbeddingGraph({ points, domain, showEdges = false, k = 3, heigh
     const xR = Math.max(dom.xMax - dom.xMin, 1e-6);
     const yR = Math.max(dom.yMax - dom.yMin, 1e-6);
     return points.map((p) => ({
+      id: p.id,
       sx: PAD + ((p.x - dom.xMin) / xR) * (w - 2 * PAD),
       sy: PAD + (1 - (p.y - dom.yMin) / yR) * (h - 2 * PAD),
       color: healthColor(p.health),
@@ -115,8 +129,35 @@ export function EmbeddingGraph({ points, domain, showEdges = false, k = 3, heigh
     return path;
   }, [entries, showEdges, k]);
 
+  const selected = useMemo(
+    () => (selectedId ? entries.find((e) => e.id === selectedId) : undefined),
+    [entries, selectedId],
+  );
+
+  const handleTap = (e: GestureResponderEvent) => {
+    if (!onSelectPoint || entries.length === 0) return;
+    const { locationX, locationY } = e.nativeEvent;
+    let best = -1;
+    let bestD = Infinity;
+    for (let i = 0; i < entries.length; i++) {
+      const dx = entries[i].sx - locationX;
+      const dy = entries[i].sy - locationY;
+      const d = dx * dx + dy * dy;
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    }
+    if (best >= 0 && bestD <= 30 * 30) onSelectPoint(entries[best].id);
+  };
+
   return (
-    <View style={[styles.wrap, { height }]} onLayout={onLayout}>
+    <View
+      style={[styles.wrap, { height }]}
+      onLayout={onLayout}
+      onStartShouldSetResponder={() => !!onSelectPoint}
+      onResponderRelease={handleTap}
+    >
       {size.w > 0 && (
         <Canvas style={{ width: size.w, height: size.h }}>
           {edgePath && (
@@ -125,6 +166,12 @@ export function EmbeddingGraph({ points, domain, showEdges = false, k = 3, heigh
           {entries.map((e, i) => (
             <Circle key={i} cx={e.sx} cy={e.sy} r={R} color={e.color} />
           ))}
+          {selected && (
+            <>
+              <Circle cx={selected.sx} cy={selected.sy} r={R + 5} style="stroke" strokeWidth={3} color="#0B1220" />
+              <Circle cx={selected.sx} cy={selected.sy} r={R + 5} style="stroke" strokeWidth={1.5} color="#FFFFFF" />
+            </>
+          )}
         </Canvas>
       )}
     </View>
