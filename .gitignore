@@ -45,5 +45,5 @@ example
 /ios
 /android
 
-data/neurohackathon_trajectory_full.npz
-
+# large shared data bundle — distributed manually (Drive), kept git-independent
+neurohackathon_trajectory_full.npz

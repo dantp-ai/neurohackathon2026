@@ -30,7 +30,7 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 from pipeline.band_power import SessionNormalizer, compute_band_powers
-from pipeline.embedding import run_anomaly_detection, run_embedding
+from pipeline.embedding import run_anomaly_detection, run_embedding, set_channel_names
 from pipeline.stream import FileStream, LSLStream, SimulatedStream
 
 load_dotenv(Path(__file__).parents[1] / ".env.local")
@@ -68,6 +68,7 @@ def _build_stream(args: argparse.Namespace):
 
 def run(patient_id: str, device_id: str, stream) -> None:
     sfreq = stream.sfreq
+    set_channel_names(stream.channel_names)   # map channels -> 8 brain regions
     buf_capacity = int(EMBED_WINDOW_S * sfreq)
     # Rolling buffer of raw samples; each element is a (n_channels,) row
     buffer: deque[np.ndarray] = deque(maxlen=buf_capacity)
