@@ -54,6 +54,21 @@
     "medium": "Medium",
     "high": "High"
   },
+  "hrStatus": {
+    "normal": "Normal",
+    "elevated": "Elevated",
+    "low": "Low"
+  },
+  "role": {
+    "patient": "Patient",
+    "caregiver": "Caregiver"
+  },
+  "time": {
+    "justNow": "just now",
+    "minAgo": "{{n}} min ago",
+    "hAgo": "{{n}} h ago",
+    "dAgo": "{{n}} d ago"
+  },
   "caregiver": {
     "patientNotFound": "Patient not found.",
     "updated": "Updated {{time}}",

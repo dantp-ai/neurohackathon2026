@@ -99,7 +99,7 @@ export default function PatientHome() {
         value={hr.value}
         unit={t('common.bpm')}
         status={hr.status}
-        statusLabel={hr.label}
+        statusLabel={t(hr.labelKey)}
         trend={hr.trend}
       />
     </Screen>

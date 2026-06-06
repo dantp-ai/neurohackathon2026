@@ -193,7 +193,7 @@ export interface HeartRateReading {
   value: number; // current bpm
   trend: number[]; // recent readings (oldest → newest)
   status: StatusLevel; // normal / elevated coloring
-  label: string; // 'Normal' | 'Elevated' | 'Low'
+  labelKey: string; // i18n key: hrStatus.normal | hrStatus.elevated | hrStatus.low
 }
 
 /** Resting baseline bpm by wellness status. */
@@ -210,8 +210,9 @@ export const heartRateFor = (patientId: string): HeartRateReading => {
   const value = trend[trend.length - 1];
   const level: StatusLevel =
     value > 110 || value < 45 ? 'bad' : value > 100 || value < 55 ? 'warn' : 'good';
-  const label = value > 100 ? 'Elevated' : value < 55 ? 'Low' : 'Normal';
-  return { value, trend, status: level, label };
+  const labelKey =
+    value > 100 ? 'hrStatus.elevated' : value < 55 ? 'hrStatus.low' : 'hrStatus.normal';
+  return { value, trend, status: level, labelKey };
 };
 
 // ---------------------------------------------------------------------------

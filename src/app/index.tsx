@@ -107,7 +107,9 @@ export default function Login() {
               style={styles.demoBtn}
               onPress={() => quickLogin(account)}
             >
-              <Text style={styles.demoLabel}>{account.label}</Text>
+              <Text style={styles.demoLabel}>
+                {`${account.user.display_name} · ${t(`role.${account.user.role}`)}`}
+              </Text>
               <Text style={styles.demoArrow}>›</Text>
             </Pressable>
           ))}

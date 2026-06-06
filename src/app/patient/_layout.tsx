@@ -1,6 +1,7 @@
 import { Redirect, Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Text } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSession } from '@/store/session';
 import { colors, spacing } from '@/theme';
@@ -21,6 +22,7 @@ const TabIcon = (glyph: string) => {
 export default function PatientLayout() {
   const { t } = useTranslation();
   const { role } = useSession();
+  const insets = useSafeAreaInsets();
   if (role !== 'patient') {
     return <Redirect href="/" />;
   }
@@ -31,7 +33,11 @@ export default function PatientLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: { height: 64, paddingBottom: spacing.sm, paddingTop: spacing.sm },
+        tabBarStyle: {
+          height: 72 + insets.bottom,
+          paddingBottom: insets.bottom + spacing.md,
+          paddingTop: spacing.sm,
+        },
         tabBarLabelStyle: { fontSize: 13, fontWeight: '600' },
       }}
     >

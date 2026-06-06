@@ -166,7 +166,7 @@ function MetricsTab({ patientId, metrics }: { patientId: string; metrics: Wellne
               {hr.value}
               <Text style={styles.vitalUnit}>{` ${t('common.bpm')}`}</Text>
             </Text>
-            <StatusPill level={hr.status} label={hr.label} />
+            <StatusPill level={hr.status} label={t(hr.labelKey)} />
           </View>
         </View>
         <LineChart

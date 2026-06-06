@@ -54,6 +54,21 @@
     "medium": "中",
     "high": "高"
   },
+  "hrStatus": {
+    "normal": "正常",
+    "elevated": "偏高",
+    "low": "偏低"
+  },
+  "role": {
+    "patient": "患者",
+    "caregiver": "护理者"
+  },
+  "time": {
+    "justNow": "刚刚",
+    "minAgo": "{{n}} 分钟前",
+    "hAgo": "{{n}} 小时前",
+    "dAgo": "{{n}} 天前"
+  },
   "caregiver": {
     "patientNotFound": "未找到患者。",
     "updated": "更新于 {{time}}",
