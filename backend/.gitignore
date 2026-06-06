@@ -3,6 +3,7 @@ __pycache__/
 .pytest_cache/
 task_heads/
 task_heads_synth/
+task_heads_sim/
 *.npz
 *.joblib
 *.png

@@ -25,5 +25,11 @@ Demo target: dementia EEG classification (OpenNeuro ds004504). See datasets.py.
 from .embedder import EEGEmbedder, DEFAULT_DIM, EPOCH_SECONDS
 from .head import TaskHead
 from .store import TaskStore
+from .continual import (
+    LabelSource, InMemoryLabelSource, SupabaseLabelSource, ContinualTrainer,
+)
 
-__all__ = ["EEGEmbedder", "TaskHead", "TaskStore", "DEFAULT_DIM", "EPOCH_SECONDS"]
+__all__ = [
+    "EEGEmbedder", "TaskHead", "TaskStore", "DEFAULT_DIM", "EPOCH_SECONDS",
+    "LabelSource", "InMemoryLabelSource", "SupabaseLabelSource", "ContinualTrainer",
+]
