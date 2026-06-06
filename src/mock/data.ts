@@ -10,7 +10,6 @@ import { StatusLevel } from '@/theme';
 import {
   ActivityLog,
   CheckinResponse,
-  EegSegment,
   Label,
   Message,
   MedicationLog,
@@ -56,7 +55,7 @@ export const PATIENTS: PatientSummary[] = [
     relationship: 'Patient',
   },
   {
-    user: { id: 'p2', role: 'patient', display_name: 'Arthur Lee', avatar_url: null },
+    user: { id: 'p2', role: 'patient', display_name: 'Harold Müller', avatar_url: null },
     status: 'good',
     metrics: { fatigue: 22, attention: 81, mood: 76 },
     lastUpdated: minutesAgo(11),
@@ -267,75 +266,6 @@ export const messagesForThread = (patientId: string, caregiverId: string): Messa
     (a, b) => +new Date(a.created_at) - +new Date(b.created_at),
   );
 
-// ---------------------------------------------------------------------------
-// EEG segments (one row per 30s chunk; UMAP coords drive the embedding map)
-// ---------------------------------------------------------------------------
-
-/**
- * Deterministic per-patient EEG segment fixtures.
- *
- * Coordinates form a tight Gaussian baseline cluster plus a few outliers that
- * carry high anomaly_score values — mirroring the seed_eeg.py distribution so
- * the mock view looks like the real one once Supabase is wired in.
- */
-const SEGMENTS_PER_PATIENT = 40;
-const ANOMALY_RATE = 0.1;
-const CHUNK_DURATION_S = 30;
-const DEVICE_ID = 'eeg-device-demo-001';
-
-/** Mulberry32 — deterministic PRNG so the mock plot is reproducible per patient. */
-const makeRng = (seed: number) => {
-  let s = seed >>> 0;
-  return () => {
-    s = (s + 0x6d2b79f5) >>> 0;
-    let t = s;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-};
-
-/** Box-Muller transform: uniform → standard normal. */
-const gaussian = (rng: () => number) => {
-  const u = 1 - rng();
-  const v = rng();
-  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
-};
-
-const seedFor = (patientId: string) =>
-  patientId.split('').reduce((acc, ch) => acc * 31 + ch.charCodeAt(0), 7);
-
-const buildSegmentsFor = (patientId: string): EegSegment[] => {
-  const rng = makeRng(seedFor(patientId));
-  const baselineCx = gaussian(rng) * 4;
-  const baselineCy = gaussian(rng) * 4;
-
-  return Array.from({ length: SEGMENTS_PER_PATIENT }).map((_, i) => {
-    const isAnomalous = rng() < ANOMALY_RATE;
-    // Newest segment first → walk back in 30s steps.
-    const ts = new Date(Date.now() - (SEGMENTS_PER_PATIENT - 1 - i) * CHUNK_DURATION_S * 1000);
-
-    const [cx, cy, spread] = isAnomalous
-      ? [baselineCx + gaussian(rng) * 6, baselineCy + gaussian(rng) * 6, 0.6]
-      : [baselineCx, baselineCy, 0.8];
-
-    return {
-      id: `${patientId}-seg-${i}`,
-      patient_id: patientId,
-      device_id: DEVICE_ID,
-      timestamp_start: ts.toISOString(),
-      duration_s: CHUNK_DURATION_S,
-      fatigue: isAnomalous ? 0.7 + rng() * 0.3 : 0.1 + rng() * 0.45,
-      attention: isAnomalous ? rng() * 0.3 : 0.45 + rng() * 0.45,
-      mood: isAnomalous ? rng() * 0.35 : 0.45 + rng() * 0.45,
-      anomaly_score: isAnomalous ? 0.75 + rng() * 0.25 : rng() * 0.35,
-      umap_x: cx + gaussian(rng) * spread,
-      umap_y: cy + gaussian(rng) * spread,
-    };
-  });
-};
-
-export const EEG_SEGMENTS: EegSegment[] = PATIENTS.flatMap((p) => buildSegmentsFor(p.user.id));
-
-export const segmentsForPatient = (patientId: string): EegSegment[] =>
-  EEG_SEGMENTS.filter((s) => s.patient_id === patientId);
+// EEG segments are no longer mocked — the Map tab reads them straight from
+// Supabase (see src/hooks/useEegSegments). The seed script in scripts/seed_eeg.py
+// derives real features + embeddings from data/sub-001_task-eyesclosed_eeg.set.

@@ -18,9 +18,9 @@ import {
   labelForEvent,
   labelsForPatient,
   patientById,
-  segmentsForPatient,
   timelineFor,
 } from '@/mock/data';
+import { useEegSegments } from '@/hooks/useEegSegments';
 import { CheckinResponseValue, Severity } from '@/types';
 import { colors, radius, spacing, StatusLevel, statusColors, typography } from '@/theme';
 import { timeAgo } from '@/utils/time';
@@ -104,7 +104,7 @@ export default function PatientDetail() {
       ) : (
         <ScrollView contentContainerStyle={styles.content}>
           {tab === 'metrics' && <MetricsTab patientId={patient.user.id} metrics={patient.metrics} />}
-          {tab === 'map' && <MapTab patientId={patient.user.id} />}
+          {tab === 'map' && <MapTab displayName={patient.user.display_name} />}
           {tab === 'alerts' && <AlertsTab patientId={patient.user.id} />}
           {tab === 'labels' && <LabelsTab patientId={patient.user.id} />}
         </ScrollView>
@@ -150,8 +150,14 @@ function Sparkbars({ label, values, accent }: { label: string; values: number[];
 
 // --- Map tab ---------------------------------------------------------------
 
-function MapTab({ patientId }: { patientId: string }) {
-  const segments = segmentsForPatient(patientId);
+function MapTab({ displayName }: { displayName: string }) {
+  const { segments, loading, error } = useEegSegments(displayName);
+  if (loading) {
+    return <Text style={styles.empty}>Loading embedding map…</Text>;
+  }
+  if (error) {
+    return <Text style={styles.empty}>Could not load EEG segments: {error}</Text>;
+  }
   return <EmbeddingMap segments={segments} />;
 }
 
