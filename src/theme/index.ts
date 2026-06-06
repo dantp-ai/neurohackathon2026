@@ -36,10 +36,19 @@ export const colors = {
   statusBad: '#D64545',
   statusBadBg: '#FBE6E6',
 
-  // Metric accents (Fatigue / Attention / Mood)
+  // Metric accents (Fatigue / Attention / Relaxation)
   fatigue: '#7A5AF0',
   attention: '#208AEF',
-  mood: '#E8730C',
+  relaxation: '#0EA5A0',
+} as const;
+
+/** Colors for the EEG frequency-band spectrum (delta → gamma). */
+export const bandColors = {
+  delta: '#6366F1',
+  theta: '#7A5AF0',
+  alpha: '#0EA5A0',
+  beta: '#208AEF',
+  gamma: '#E8730C',
 } as const;
 
 export type StatusLevel = 'good' | 'warn' | 'bad';
