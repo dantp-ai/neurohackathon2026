@@ -129,7 +129,7 @@ function MetricsTab({ patientId, metrics }: { patientId: string; metrics: Wellne
   return (
     <View style={{ gap: spacing.lg }}>
       <View style={styles.metricsRow}>
-        <MetricTile label="Fatigue" score={scores.fatigue} accent={colors.fatigue} />
+        <MetricTile label="Energy" score={scores.fatigue} accent={colors.fatigue} />
         <MetricTile label="Attention" score={scores.attention} accent={colors.attention} />
         <MetricTile label="Relaxation" score={scores.relaxation} accent={colors.relaxation} />
       </View>
@@ -137,7 +137,7 @@ function MetricsTab({ patientId, metrics }: { patientId: string; metrics: Wellne
       <Text style={styles.sectionTitle}>Last hour</Text>
       <LineChart
         series={[
-          { label: 'Fatigue', color: colors.fatigue, values: series.map((p) => p.fatigue) },
+          { label: 'Energy', color: colors.fatigue, values: series.map((p) => p.fatigue) },
           { label: 'Attention', color: colors.attention, values: series.map((p) => p.attention) },
           { label: 'Relaxation', color: colors.relaxation, values: series.map((p) => p.relaxation) },
         ]}
@@ -156,7 +156,7 @@ function MetricsTab({ patientId, metrics }: { patientId: string; metrics: Wellne
           </View>
         </View>
         <LineChart
-          series={[{ label: 'Heart rate (bpm)', color: colors.statusBad, values: hr.trend }]}
+          series={[{ label: 'Heart rate (bpm)', color: colors.heart, values: hr.trend }]}
           min={hrMin}
           max={hrMax}
           height={120}

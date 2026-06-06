@@ -59,7 +59,7 @@ function PatientCard({ patient, onPress }: { patient: PatientSummary; onPress: (
         <StatusPill level={patient.status} label={STATUS_LABEL[patient.status]} />
       </View>
       <View style={styles.metricsRow}>
-        <MiniMetric label="Fatigue" score={scores.fatigue} accent={colors.fatigue} />
+        <MiniMetric label="Energy" score={scores.fatigue} accent={colors.fatigue} />
         <MiniMetric label="Attention" score={scores.attention} accent={colors.attention} />
         <MiniMetric label="Relaxation" score={scores.relaxation} accent={colors.relaxation} />
       </View>

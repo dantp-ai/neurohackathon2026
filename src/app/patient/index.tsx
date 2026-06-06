@@ -87,7 +87,7 @@ export default function PatientHome() {
 
       <Text style={styles.sectionTitle}>Current readings</Text>
       <View style={styles.metrics}>
-        <MetricTile label="Fatigue" score={scores.fatigue} accent={colors.fatigue} />
+        <MetricTile label="Energy" score={scores.fatigue} accent={colors.fatigue} />
         <MetricTile label="Attention" score={scores.attention} accent={colors.attention} />
         <MetricTile label="Relaxation" score={scores.relaxation} accent={colors.relaxation} />
       </View>
