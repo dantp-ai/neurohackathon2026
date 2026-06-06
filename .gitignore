@@ -33,6 +33,9 @@ yarn-error.*
 # local env files
 .env*.local
 
+# generated demo artifacts
+scripts/decline_demo.mp4
+
 # typescript
 *.tsbuildinfo
 
