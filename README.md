@@ -15,14 +15,58 @@ Frontend scaffold + all basic screens are in, running against **mock data**
 ## Prerequisites
 
 - **Node** — version pinned in [`.nvmrc`](./.nvmrc). With `nvm`: `nvm use`.
+- **Docker Desktop** — required to run Supabase locally. [Download here](https://www.docker.com/products/docker-desktop/).
+- **Supabase CLI** — `brew install supabase/tap/supabase`
+- **uv** (Python package manager) — `brew install uv`
 - No global Expo CLI needed; it runs via `npx`.
 
 ## Setup
 
+### 1. Frontend
+
 ```bash
 nvm use            # match the pinned Node version
 npm ci             # install exact, locked dependencies (reproducible)
-npm start          # start the Expo dev server
+```
+
+### 2. Local database
+
+Make sure Docker Desktop is running, then:
+
+```bash
+supabase start     # pulls containers and applies migrations automatically
+```
+
+This starts Postgres + Auth + Realtime + Storage locally. When it's ready it
+prints your local URLs and keys. Copy them into your env file:
+
+```bash
+cp .env.example .env.local
+# open .env.local and fill in the values printed by `supabase start`
+```
+
+### 3. Seed demo data
+
+```bash
+uv run python scripts/seed_eeg.py
+```
+
+This inserts two patients, two caregivers, and 40 EEG segments per patient
+(20 min recording, ~10% flagged as anomalous) with random 384-dim embeddings.
+
+Demo credentials (password: `demo1234`):
+
+| Role | Email |
+|---|---|
+| Patient | `margaret@demo.local` |
+| Patient | `harold@demo.local` |
+| Caregiver | `sarah@demo.local` |
+| Caregiver | `james@demo.local` |
+
+### 4. Start the app
+
+```bash
+npm start
 ```
 
 Then press `i` (iOS simulator), `a` (Android), or `w` (web) — or scan the QR
@@ -31,6 +75,11 @@ code with the **Expo Go** app on your phone.
 > Use `npm ci` (not `npm install`) so everyone gets the exact dependency
 > versions from `package-lock.json`. Node is pinned via `.nvmrc` and the
 > `engines` field in `package.json`.
+
+### Supabase Studio
+
+Browse tables and data at **http://127.0.0.1:54323** while `supabase start` is
+running.
 
 ## Scripts
 
