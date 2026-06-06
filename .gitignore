@@ -47,3 +47,8 @@ example
 
 # large shared data bundle — distributed manually (Drive), kept git-independent
 neurohackathon_trajectory_full.npz
+
+# python
+__pycache__/
+*.pyc
+.venv/

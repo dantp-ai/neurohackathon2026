@@ -20,7 +20,9 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-sys.path.insert(0, str(Path(__file__).parent.parent))  # repo root, for `backend` import
+# Append repo root so `backend` is importable WITHOUT the local `supabase/`
+# config dir shadowing the installed `supabase` package (site-packages wins).
+sys.path.append(str(Path(__file__).parent.parent))
 from backend.ml import ContinualTrainer, SupabaseLabelSource, TaskStore
 
 
