@@ -29,6 +29,26 @@ emb = EEGEmbedder(dim=384).embed(
 # emb: [n_30s_windows, 384] L2-normalized embeddings
 ```
 
+## Trajectory dataset — `interp_trajectory_sub037_sub001.npz`
+Precomputed "healthy → dementia" embedding trajectory for the demo: ds004504
+**sub-037 (healthy/CN) → sub-001 (Alzheimer's)**. Real 30s EEG windows were blended
+in **input space** across alpha=0→1 and **embedded live** with the neuroencoder MRL
+model (dim=384), so every point is a genuine model output. Load with `np.load`:
+
+| key | shape | meaning |
+|---|---|---|
+| `embedding` | `[530, 384]` | L2-normalized embeddings |
+| `alpha` | `[530]` | time, 0 = healthy → 1 = dementia (use as color) |
+| `is_real` | `[530]` bool | True = real recording window, False = interpolated blend |
+| `xy` | `[530, 2]` | 2D UMAP coords for direct plotting |
+| `description` | str | provenance |
+
+```python
+import numpy as np
+d = np.load("data/interp_trajectory_sub037_sub001.npz", allow_pickle=True)
+xy, alpha = d["xy"], d["alpha"]   # scatter(xy[:,0], xy[:,1], c=alpha)
+```
+
 ## Attribution
 Miltiadous, A. et al. *A Dataset of Scalp EEG Recordings of Alzheimer's Disease,
 Frontotemporal Dementia and Healthy Subjects from Routine EEG.* Data 8(6):95, 2023.
