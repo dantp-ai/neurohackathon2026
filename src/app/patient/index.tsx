@@ -25,7 +25,7 @@ export default function PatientHome() {
       <View style={styles.topBar}>
         <Text style={styles.greeting}>Hello, {user?.display_name?.split(' ')[0] ?? 'there'}</Text>
         <Pressable onPress={signOut} hitSlop={8}>
-          <Text style={styles.switch}>Switch</Text>
+          <Text style={styles.switch}>Sign out</Text>
         </Pressable>
       </View>
 

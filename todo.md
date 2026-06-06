@@ -1,0 +1,2 @@
+### Anomaly/event labeler 
+Idea is to pull UMAPs from the database where we can see in real time the patient's embedding for different classifiers. An example of this classifier is where the neural data falls on the AD/Healthy cluster. When there is an anomaly 
