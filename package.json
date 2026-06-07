@@ -49,7 +49,8 @@
   },
   "scripts": {
     "start": "expo start",
-    "dev": "node scripts/dev.js",
+    "dev": "supabase start && node scripts/dev.js",
+    "setup": "supabase start && uv run python scripts/seed_eeg.py && uv run python scripts/compute_umap.py && node scripts/dev.js",
     "stream": "node scripts/dev.js --stream",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",

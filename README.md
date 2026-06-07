@@ -72,11 +72,16 @@ Demo credentials (password: `demo1234`):
 ### 4. Start the app
 
 ```bash
-npm start
+npm run dev      # supabase start + Expo dev server + neurodsp live stream
 ```
 
 Then press `i` (iOS simulator), `a` (Android), or `w` (web) — or scan the QR
 code with the **Expo Go** app on your phone.
+
+> First-time setup? Use `npm run setup` instead — it starts Supabase, runs the
+> seed + UMAP scripts, and launches the dev server, all in one command. After
+> that, `npm run dev` is enough for day-to-day work (Supabase comes up if it's
+> not already running).
 
 > Use `npm ci` (not `npm install`) so everyone gets the exact dependency
 > versions from `package-lock.json`. Node is pinned via `.nvmrc` and the
@@ -91,7 +96,9 @@ running.
 
 | Command | What it does |
 |---|---|
-| `npm start` | Start the Expo dev server |
+| `npm run setup` | One-shot: `supabase start` + seed + UMAP + Expo dev server. Use on a fresh clone. |
+| `npm run dev` | `supabase start` + Expo dev server + neurodsp live stream. Use day-to-day. |
+| `npm start` | Just the Expo dev server (assumes Supabase is already running) |
 | `npm run ios` / `android` / `web` | Start targeting a specific platform |
 | `npm run typecheck` | `tsc --noEmit` — type-check the whole app |
 | `npm run lint` | Expo lint |
