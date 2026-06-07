@@ -9,11 +9,11 @@ the model loads, ~1 every 2.5s) and crossfades a healthy buffer into an
 unhealthy one and back, so the streamed points visibly drift green → red across
 the map — a live version of the cognitive-decline trajectory.
 
-    npm run stream                                  # default patient "Live Monitor"
-    STREAM_PATIENT="Sofia Rossi" npm run stream
+    npm run stream                                   # default patient "Sofia Rossi"
+    STREAM_PATIENT="Margaret Chen" npm run stream
 
-"Live Monitor" is a dedicated, initially-empty patient in the caregiver list, so
-the streamed points fill a clean map instead of distorting an existing cloud.
+Streams into an existing patient so the points appear on a screen you can open.
+Each patient also streams client-side in the app, so the controller is optional.
 """
 import math
 import os
@@ -44,7 +44,7 @@ def get_or_create_patient(sb, name: str) -> str:
 
 
 def main() -> None:
-    name = os.getenv("STREAM_PATIENT", "Live Monitor")
+    name = os.getenv("STREAM_PATIENT", "Sofia Rossi")
     sb = create_client(SUPABASE_URL, SUPABASE_KEY)
     pid = get_or_create_patient(sb, name)
 

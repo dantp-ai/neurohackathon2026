@@ -18,6 +18,7 @@ import { SkiaGraph } from '@/components/SkiaGraph';
 import type { GraphPoint } from '@/components/SkiaGraph';
 import { StreamControls } from '@/components/StreamControls';
 import { useSegmentLabels } from '@/hooks/useSegmentLabels';
+import { viridis } from '@/lib/colormap';
 import { supabase } from '@/lib/supabase';
 import { domainOf, segmentsToPoints } from '@/lib/points';
 import {
@@ -146,7 +147,7 @@ function MetricsTab({ patientId, metrics }: { patientId: string; metrics: Wellne
     { color: colors.attention, base: 3.0, amp: 1.0, cycles: 4, phase: 1.2 },
     { color: colors.relaxation, base: 2.7, amp: 0.9, cycles: 2, phase: 2.4 },
   ];
-  const hrLines = [{ color: colors.heart, base: hr.value, amp: 9, cycles: 5, phase: 0 }];
+  const hrLines = [{ color: colors.heart, base: hr.value, amp: 11, cycles: 6, shape: 'ecg' as const }];
 
   return (
     <View style={{ gap: spacing.lg }}>
@@ -182,7 +183,7 @@ function MetricsTab({ patientId, metrics }: { patientId: string; metrics: Wellne
             <StatusPill level={hr.status} label={t(hr.labelKey)} />
           </View>
         </View>
-        <LiveWaveform lines={hrLines} active={vitals} min={hr.value - 18} max={hr.value + 18} height={120} />
+        <LiveWaveform lines={hrLines} active={vitals} min={hr.value - 5} max={hr.value + 15} height={120} speed={82} />
       </Card>
     </View>
   );
@@ -204,7 +205,7 @@ function MapTab({ displayName }: { displayName: string }) {
   const { segments, loading, error } = useEegSegments(displayName);
   const { add } = useSegmentLabels(displayName);
   const base = useMemo(() => segmentsToPoints(segments), [segments]);
-  const domain = useMemo(() => domainOf(base), [base]);
+  const domain = useMemo(() => domainOf(base, 0.04), [base]);
 
   const [live, setLive] = useState<(GraphPoint & { tISO: string })[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -249,10 +250,14 @@ function MapTab({ displayName }: { displayName: string }) {
   const points = useMemo(() => [...base, ...live], [base, live]);
 
   const target = useMemo(() => {
-    if (!selectedId) return null;
-    const lp = live.find((p) => p.id === selectedId);
+    // Fall back to the most recent point so the labeler is active immediately.
+    const id =
+      selectedId ??
+      (live.length ? live[live.length - 1].id : segments.length ? segments[segments.length - 1].id : null);
+    if (!id) return null;
+    const lp = live.find((p) => p.id === id);
     if (lp) return { live: true as const, id: lp.id, tISO: lp.tISO, anomaly: lp.health, x: lp.x, y: lp.y };
-    const seg = segments.find((s) => s.id === selectedId);
+    const seg = segments.find((s) => s.id === id);
     if (seg) return { live: false as const, id: seg.id, tISO: seg.timestamp_start, anomaly: seg.anomaly_score };
     return null;
   }, [selectedId, live, segments]);
@@ -321,11 +326,16 @@ function MapTab({ displayName }: { displayName: string }) {
               interactive
               pulseId={newestId}
               pointOpacity={0.85}
+              colorMode="time"
             />
             <View style={styles.mapLegend}>
-              <Text style={styles.legendText}>{t('embedding.healthy')}</Text>
-              <View style={styles.gradientBar} />
-              <Text style={styles.legendText}>{t('embedding.unhealthy')}</Text>
+              <Text style={styles.legendText}>{t('embedding.start')}</Text>
+              <View style={styles.viridisBar}>
+                {Array.from({ length: 16 }).map((_, i) => (
+                  <View key={i} style={{ flex: 1, backgroundColor: viridis(i / 15) }} />
+                ))}
+              </View>
+              <Text style={styles.legendText}>{t('embedding.now')}</Text>
             </View>
           </>
         )}
@@ -443,6 +453,7 @@ const styles = StyleSheet.create({
   alertSummary: { ...typography.body, color: colors.textMuted, fontStyle: 'italic' },
   mapLegend: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   legendText: { ...typography.caption, color: colors.textMuted },
+  viridisBar: { flex: 1, height: 8, borderRadius: 4, overflow: 'hidden', flexDirection: 'row' },
   gradientBar: {
     flex: 1,
     height: 8,

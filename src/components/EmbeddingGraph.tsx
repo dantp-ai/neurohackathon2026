@@ -18,6 +18,7 @@ import {
   withTiming,
 } from 'react-native-reanimated';
 
+import { viridis } from '@/lib/colormap';
 import { colors } from '@/theme';
 
 export type GraphPoint = { id: string; x: number; y: number; health: number };
@@ -41,6 +42,8 @@ export type EmbeddingGraphProps = {
   pointRadius?: number;
   /** Point opacity (default 1) — slight transparency reads better on dense clouds. */
   pointOpacity?: number;
+  /** 'health' (green→red by anomaly) or 'time' (viridis by point order). */
+  colorMode?: 'health' | 'time';
 };
 
 const R = 6;
@@ -114,6 +117,7 @@ export function EmbeddingGraph({
   pulseId,
   pointRadius,
   pointOpacity,
+  colorMode = 'health',
 }: EmbeddingGraphProps) {
   const pr = pointRadius ?? R;
   const [size, setSize] = useState({ w: 0, h: height });
@@ -127,13 +131,15 @@ export function EmbeddingGraph({
     if (w === 0) return [];
     const xR = Math.max(dom.xMax - dom.xMin, 1e-6);
     const yR = Math.max(dom.yMax - dom.yMin, 1e-6);
-    return points.map((p) => ({
+    const n = points.length;
+    const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
+    return points.map((p, i) => ({
       id: p.id,
-      sx: PAD + ((p.x - dom.xMin) / xR) * (w - 2 * PAD),
-      sy: PAD + (1 - (p.y - dom.yMin) / yR) * (h - 2 * PAD),
-      color: healthColor(p.health),
+      sx: clamp(PAD + ((p.x - dom.xMin) / xR) * (w - 2 * PAD), pr, w - pr),
+      sy: clamp(PAD + (1 - (p.y - dom.yMin) / yR) * (h - 2 * PAD), pr, h - pr),
+      color: colorMode === 'time' ? viridis(n <= 1 ? 1 : i / (n - 1)) : healthColor(p.health),
     }));
-  }, [points, size, dom]);
+  }, [points, size, dom, colorMode, pr]);
 
   const edgePath = useMemo(() => {
     if (!showEdges || entries.length < 2) return null;

@@ -189,13 +189,15 @@
   },
   "embedding": {
     "title": "嵌入图谱",
-    "subtitle": "{{count}} 个片段 · 颜色 = 异常评分",
+    "subtitle": "{{count}} 个片段 · 颜色 = 时间",
     "healthy": "健康",
     "unhealthy": "不健康",
     "empty": "暂无嵌入数据。",
     "baseline": "基线",
     "mid": "中度",
-    "anomalous": "异常"
+    "anomalous": "异常",
+    "start": "监测开始",
+    "now": "现在"
   },
   "stream": {
     "title": "数据流",

@@ -144,8 +144,10 @@ export function SegmentLabeler({ displayName, targetTime, targetAnomaly, onLabel
 
       {targetTime ? (
         <Text style={styles.target}>
-          {t('labels.targetSelected', { time: clockTime(targetTime) })}{' '}
-          · {t('labels.anomaly', { score: Math.round((targetAnomaly ?? 0) * 100) })}
+          {t('labels.targetSelected', { time: clockTime(targetTime) })} ·{' '}
+          <Text style={(targetAnomaly ?? 0) > 0.3 ? styles.anomHigh : undefined}>
+            {t('labels.anomaly', { score: Math.round((targetAnomaly ?? 0) * 100) })}
+          </Text>
         </Text>
       ) : (
         <Text style={styles.target}>{t('labels.noSegments')}</Text>
@@ -217,6 +219,7 @@ const styles = StyleSheet.create({
   title: { ...typography.heading, color: colors.text },
   subhead: { ...typography.bodyStrong, color: colors.text, marginTop: spacing.sm },
   target: { ...typography.bodyStrong, color: colors.text },
+  anomHigh: { color: colors.statusBad },
   hint: { ...typography.caption, color: colors.textMuted },
   err: { ...typography.caption, color: colors.statusBad },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },

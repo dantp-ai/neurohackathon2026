@@ -11,7 +11,14 @@ import { useDerivedValue, useFrameCallback, useSharedValue } from 'react-native-
 
 import { colors } from '@/theme';
 
-export type WaveLine = { color: string; base: number; amp: number; cycles: number; phase?: number };
+export type WaveLine = {
+  color: string;
+  base: number;
+  amp: number;
+  cycles: number;
+  phase?: number;
+  shape?: 'sine' | 'ecg';
+};
 export type LiveWaveformProps = {
   lines: WaveLine[];
   active: boolean;
@@ -23,14 +30,34 @@ export type LiveWaveformProps = {
 
 const PAD = 14;
 
+const bump = (u: number, c: number, w: number) => Math.exp(-((u - c) * (u - c)) / w);
+// Stylized PQRST beat, u in [0,1): flat baseline with a tall R spike.
+function ecgVal(u: number): number {
+  return (
+    0.12 * bump(u, 0.18, 0.0009) - // P
+    0.1 * bump(u, 0.30, 0.00015) + // Q
+    1.0 * bump(u, 0.33, 0.00008) - // R (tall)
+    0.18 * bump(u, 0.37, 0.0002) + // S
+    0.22 * bump(u, 0.62, 0.0016) // T
+  );
+}
+
 function buildPath(W: number, H: number, line: WaveLine, min: number, max: number) {
   const p = Skia.Path.Make();
   const span = W * 2;
   const range = Math.max(max - min, 1e-6);
   const ph = line.phase ?? 0;
-  for (let x = 0; x <= span; x += 3) {
-    const theta = (x / W) * line.cycles * 2 * Math.PI + ph;
-    const v = line.base + line.amp * (Math.sin(theta) + 0.22 * Math.sin(2 * theta));
+  const ecg = line.shape === 'ecg';
+  const step = ecg ? 1 : 3;
+  for (let x = 0; x <= span; x += step) {
+    let v: number;
+    if (ecg) {
+      const u = (((x / W) * line.cycles) % 1 + 1) % 1;
+      v = line.base + line.amp * ecgVal(u);
+    } else {
+      const theta = (x / W) * line.cycles * 2 * Math.PI + ph;
+      v = line.base + line.amp * (Math.sin(theta) + 0.22 * Math.sin(2 * theta));
+    }
     const y = PAD + (1 - (v - min) / range) * (H - 2 * PAD);
     if (x === 0) p.moveTo(x, y);
     else p.lineTo(x, y);

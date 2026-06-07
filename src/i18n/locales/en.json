@@ -189,13 +189,15 @@
   },
   "embedding": {
     "title": "Embedding map",
-    "subtitle": "{{count}} segments · color = anomaly score",
+    "subtitle": "{{count}} segments · color = time",
     "healthy": "Healthy",
     "unhealthy": "Unhealthy",
     "empty": "No embedding data yet.",
     "baseline": "Baseline",
     "mid": "Mid",
-    "anomalous": "Anomalous"
+    "anomalous": "Anomalous",
+    "start": "Start of monitoring",
+    "now": "Now"
   },
   "stream": {
     "title": "Data streaming",

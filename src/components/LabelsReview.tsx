@@ -36,10 +36,10 @@ export function LabelsReview({ displayName }: { displayName: string }) {
       <View style={styles.table}>
         {/* header */}
         <View style={[styles.row, styles.headerRow]}>
-          <Text style={[styles.cell, styles.colTime, styles.headerText]}>{t('labels.colTime')}</Text>
-          <Text style={[styles.cell, styles.colSample, styles.headerText]}>{t('labels.colSample')}</Text>
-          <Text style={[styles.cell, styles.colLabel, styles.headerText]}>{t('labels.colLabel')}</Text>
-          <Text style={[styles.cell, styles.colSource, styles.headerText, styles.cellLast]}>
+          <Text numberOfLines={1} style={[styles.cell, styles.colTime, styles.headerText]}>{t('labels.colTime')}</Text>
+          <Text numberOfLines={1} style={[styles.cell, styles.colSample, styles.headerText]}>{t('labels.colSample')}</Text>
+          <Text numberOfLines={1} style={[styles.cell, styles.colLabel, styles.headerText]}>{t('labels.colLabel')}</Text>
+          <Text numberOfLines={1} style={[styles.cell, styles.colSource, styles.headerText, styles.cellLast]}>
             {t('labels.colSource')}
           </Text>
         </View>
@@ -55,7 +55,7 @@ export function LabelsReview({ displayName }: { displayName: string }) {
               <View key={l.id} style={[styles.row, i % 2 === 1 && styles.rowAlt]}>
                 <Text style={[styles.cell, styles.colTime, styles.timeText]}>{clockTime(l.created_at)}</Text>
                 <View style={[styles.cell, styles.colSample]}>
-                  <SampleWave seed={l.id} color={waveColor} />
+                  <SampleWave seed={l.id} color={waveColor} width={48} height={20} />
                 </View>
                 <Pressable
                   style={[styles.cell, styles.colLabel]}
@@ -111,28 +111,30 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radius.sm,
     overflow: 'hidden',
+    maxWidth: 520,
+    alignSelf: 'stretch',
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
-    minHeight: 40,
+    minHeight: 28,
   },
   rowAlt: { backgroundColor: colors.surfaceAlt },
   headerRow: { backgroundColor: colors.surfaceAlt },
   cell: {
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingVertical: 2,
     borderRightWidth: StyleSheet.hairlineWidth,
     borderRightColor: colors.border,
     justifyContent: 'center',
   },
   cellLast: { borderRightWidth: 0 },
-  colTime: { width: 52 },
-  colSample: { width: 70, alignItems: 'center' },
+  colTime: { width: 54 },
+  colSample: { width: 74, alignItems: 'center' },
   colLabel: { flex: 1 },
-  colSource: { width: 74, alignItems: 'flex-start' },
+  colSource: { width: 92, alignItems: 'flex-start' },
   headerText: { ...typography.caption, color: colors.textMuted, fontWeight: '700' },
   timeText: { ...typography.caption, color: colors.text, fontVariant: ['tabular-nums'] },
   labelText: { ...typography.body, color: colors.text, fontWeight: '600' },
