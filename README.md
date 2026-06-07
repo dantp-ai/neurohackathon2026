@@ -16,6 +16,12 @@ detailed, labelable monitoring view for the clinician — in English and 简体�
 
 > What is real vs. simulated in this demo is documented in [`HONESTY.md`](./HONESTY.md).
 
+<p align="center">
+  <img src="docs/screenshots/labels.png" width="32%" />
+  <img src="docs/screenshots/metrics.png" width="32%" />
+  <img src="docs/screenshots/map.png" width="32%" />
+</p>
+
 ## What it does
 
 **Patient app** — a calm, large-type home screen:
