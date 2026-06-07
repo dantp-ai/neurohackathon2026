@@ -10,9 +10,13 @@
  */
 const { spawn } = require('child_process');
 const fs = require('fs');
+const path = require('path');
 
+const VENV = path.join(__dirname, '..', '.venv', 'bin', 'python');
 const CUDA = '/opt/homebrew/Caskroom/miniforge/base/envs/cuda/bin/python';
-const python = process.env.PYTHON || (fs.existsSync(CUDA) ? CUDA : 'python3');
+const python =
+  process.env.PYTHON ||
+  (fs.existsSync(VENV) ? VENV : fs.existsSync(CUDA) ? CUDA : 'python3');
 const streamOnly = process.argv.includes('--stream');
 
 const procs = [];
