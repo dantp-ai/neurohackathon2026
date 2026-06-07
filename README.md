@@ -1,181 +1,68 @@
-# NeuroMonitor — EEG Elderly Monitoring App
+# BetterNǎo
 
-Repo for the (N)eurohackathon 2026, Hong Kong — HealthTech track.
+EEG wellbeing monitoring for care teams. Built at the Neurohackathon 2026 (Hong Kong, HealthTech track).
 
-A mobile-first app (React Native + Expo) that lets care teams continuously
-monitor the cognitive and physical wellbeing of elderly users via EEG and
-wearable data. See [`PROJECT_CONTEXT.md`](./PROJECT_CONTEXT.md) for the full
-product spec and data model.
+BetterNǎo turns continuous EEG into something a family or care team can actually
+read. A clinical-grade EEG **foundation model** embeds each window of brain
+activity; the app shows that as a calm wellness signal for the patient and a
+detailed, labelable monitoring view for the clinician — in English and 简体中文.
 
-## Run the full demo
+> What is real vs. simulated in this demo is documented in [`HONESTY.md`](./HONESTY.md).
 
-Everything needed to clone this repo and run the whole thing end-to-end.
+## What it does
+
+**Patient app** — a calm, large-type home screen:
+- A living **wellness orb** reflecting current brain state (no scary numbers).
+- **Check-in**: tap and speak ("I feel a little dizzy") — a small LLM turns it into a clinical label for the care team.
+- **Medicine** logging and a realtime **chat** with the care team.
+
+**Caregiver app** — a clinical monitoring view per patient:
+- **Metrics** — live EEG + heart-rate waveforms and vitals.
+- **Map** — the patient's EEG embeddings over time as an interactive map (pan / zoom), colored by time, with outlier / anomaly detection.
+- **Labels** — review the label history and add labels by voice or tap, pinned to a point on the map.
+- **Alerts** and realtime **chat** with the patient.
+
+**Streaming demo (`/demo`)** — watch a brain drift from **healthy → dementia**.
+Each point is a 30-second window of **real clinical EEG**, embedded live by the
+foundation model.
+
+## Run it
 
 **You need**
+- **Node ≥ 20** (`.nvmrc`) + npm
+- **Docker Desktop** + **Supabase CLI** (`brew install supabase/tap/supabase`) — local backend
+- **uv** (`brew install uv`) — Python pipeline + seed scripts
+- An **OpenRouter API key** for voice → label (already in `.env.example` for the team)
+- *(optional)* **neuroencoder model weights** (gated Hugging Face repo) — only to (re)generate embeddings; not needed to run against the seeded DB
 
-- **Node ≥ 20** (`.nvmrc`) + npm — the Expo app.
-- **Docker Desktop** + **Supabase CLI** (`brew install supabase/tap/supabase`) — the local backend (Postgres + auth + realtime).
-- **uv** (`brew install uv`) — runs the Python pipeline + seed scripts.
-- **neuroencoder model weights** (gated Hugging Face repo) — only to (re)generate EEG embeddings (seeding + the live stream). Not needed to run against an already-seeded DB.
-- An **OpenRouter API key** — powers voice → label (clinician labeling + patient check-in); set `EXPO_PUBLIC_OPENROUTER_API_KEY` in `.env.local`.
-
-**One-time setup**
-
+**Setup (once)**
 ```bash
 nvm use && npm ci                 # app dependencies
-npx setup-skia-web public         # CanvasKit WASM for the web build -> public/canvaskit.wasm
-cp .env.example .env.local        # fill SUPABASE keys from `supabase status`; add EXPO_PUBLIC_OPENROUTER_API_KEY
+npx setup-skia-web public         # CanvasKit WASM for web -> public/canvaskit.wasm
+cp .env.example .env.local        # fill SUPABASE keys from `supabase status`
 ```
 
 **Run**
-
 ```bash
-npm run setup     # first run: supabase start + seed all demo data + launch app + neurodsp stream
-npm run dev       # later runs: supabase start + launch app + neurodsp stream
+npm run setup     # fresh clone: supabase + seed all demo data + app + live stream
+npm run dev       # later runs: supabase + app + live stream
 ```
 
-Then press **`w`** for the web app (open `/demo`), or scan for a **dev build** on a phone.
+Press **`w`** for the web app, then open `/demo`. For a phone, build a **dev
+client** (`npx expo run:ios` / `run:android`) — Skia and `expo-audio` aren't in
+Expo Go — and keep the phone on the same Wi-Fi (the Supabase host auto-resolves,
+no manual IP).
 
-- **Phone:** needs a **dev build** (`npx expo run:ios` / `run:android`) — Skia + `expo-audio` aren't in Expo Go. Keep the phone and the Mac on the **same Wi-Fi** (the app auto-resolves the Supabase host, so no manual IP).
-- **Demo logins** (one tap on the login screen): **Margaret Chen** (patient) · **Dr. Mei Nguyen** (caregiver).
-- **Live neurodsp stream** on its own: `npm run stream`.
+**Demo logins** (one tap on the login screen):
+**Margaret Chen** (patient) · **Dr. Mei Nguyen** (caregiver).
 
-**Demo data / seed scripts**
+Browse the database at Supabase Studio: <http://127.0.0.1:54323>
 
-- `scripts/seed_trajectory.py` — the `/demo` healthy→dementia trajectory (reads `data/*.npz`; **no model needed**).
-- `scripts/seed_eeg.py` — demo patients (Margaret, Harold, Sofia) + EEG segments from the real `sub-001` recording via the foundation model. **Yes, this is used** — it runs inside `npm run setup`.
-- `scripts/compute_umap.py` — 2-D UMAP coordinates for the seeded segments.
+## How it's built
 
-All seeds are idempotent. `npm run setup` runs them in order; the app then reads everything from Supabase live (chat, labels, and embedding maps update in realtime).
+- **App** — React Native + Expo (Expo Router), Skia (waveforms + maps), Reanimated + Gesture Handler, i18next (EN / 简体中文).
+- **Backend** — Supabase (Postgres + Auth + Realtime) for chat, labels, and segments.
+- **Pipeline** (`pipeline/`, `backend/`) — EEG foundation model + UMAP projection + anomaly detection, with a neurodsp live stream.
+- **Seeds** (`scripts/`) — `seed_trajectory.py` (the `/demo` trajectory from real data), `seed_eeg.py` (demo patients + segments through the model), `compute_umap.py`. All idempotent; `npm run setup` runs them in order.
 
-## Status
-
-Full app + local backend: **Supabase** (Postgres + auth + realtime) wired to the
-EEG **pipeline** (foundation-model embeddings, UMAP, anomaly detection) plus a
-live **neurodsp** stream. One app, two roles — **patient** and **caregiver** —
-in English and 简体中文.
-
-## Prerequisites
-
-- **Node** — version pinned in [`.nvmrc`](./.nvmrc). With `nvm`: `nvm use`.
-- **Docker Desktop** — required to run Supabase locally. [Download here](https://www.docker.com/products/docker-desktop/).
-- **Supabase CLI** — `brew install supabase/tap/supabase`
-- **uv** (Python package manager) — `brew install uv`
-- No global Expo CLI needed; it runs via `npx`.
-
-## Setup
-
-### 1. Frontend
-
-```bash
-nvm use            # match the pinned Node version
-npm ci             # install exact, locked dependencies (reproducible)
-```
-
-### 2. Local database
-
-Make sure Docker Desktop is running, then:
-
-```bash
-supabase start     # pulls containers and applies migrations automatically
-```
-
-This starts Postgres + Auth + Realtime + Storage locally. When it's ready it
-prints your local URLs and keys. Copy them into your env file:
-
-```bash
-cp .env.example .env.local
-# open .env.local and fill in the values printed by `supabase start`
-```
-
-### 3. Seed demo data
-
-```bash
-uv run python scripts/seed_eeg.py
-uv run python scripts/compute_umap.py   # 2D projection for the embedding map
-```
-
-`seed_eeg.py` loads the real sub-001 recording from `data/`, chunks it into
-30-second windows, computes per-channel band-power features (delta/theta/alpha/beta/gamma),
-and writes one row per window for both demo patients. The features are zero-padded
-to fit the 384-dim `embedding` column — when the real EEG embedder lands, swap
-that one function. `compute_umap.py` then fits UMAP over those embeddings and
-writes `umap_x`/`umap_y` back per row, which drives the caregiver **Map** tab.
-The seed is idempotent — running it twice replaces the existing segments.
-
-Demo credentials (password: `demo1234`):
-
-| Role | Email |
-|---|---|
-| Patient | `margaret@demo.local` |
-| Patient | `harold@demo.local` |
-| Caregiver | `sarah@demo.local` |
-| Caregiver | `james@demo.local` |
-
-### 4. Start the app
-
-```bash
-npm run dev      # supabase start + Expo dev server + neurodsp live stream
-```
-
-Then press `i` (iOS simulator), `a` (Android), or `w` (web) — or scan the QR
-code with the **Expo Go** app on your phone.
-
-> First-time setup? Use `npm run setup` instead — it starts Supabase, runs the
-> seed + UMAP scripts, and launches the dev server, all in one command. After
-> that, `npm run dev` is enough for day-to-day work (Supabase comes up if it's
-> not already running).
-
-> Use `npm ci` (not `npm install`) so everyone gets the exact dependency
-> versions from `package-lock.json`. Node is pinned via `.nvmrc` and the
-> `engines` field in `package.json`.
-
-### Supabase Studio
-
-Browse tables and data at **http://127.0.0.1:54323** while `supabase start` is
-running.
-
-## Scripts
-
-| Command | What it does |
-|---|---|
-| `npm run setup` | One-shot: `supabase start` + seed + UMAP + Expo dev server. Use on a fresh clone. |
-| `npm run dev` | `supabase start` + Expo dev server + neurodsp live stream. Use day-to-day. |
-| `npm start` | Just the Expo dev server (assumes Supabase is already running) |
-| `npm run ios` / `android` / `web` | Start targeting a specific platform |
-| `npm run typecheck` | `tsc --noEmit` — type-check the whole app |
-| `npm run lint` | Expo lint |
-
-## Project structure
-
-```
-src/
-  app/                 # Expo Router routes (file-based)
-    _layout.tsx        #   root: providers + stack
-    index.tsx          #   dev role switcher (stands in for login)
-    checkin.tsx        #   full-screen check-in modal
-    patient/           #   patient tabs: Home · Activity · Medicine · Messages
-    caregiver/         #   caregiver: patient list -> patient detail
-  components/          # shared UI (Button, Card, MetricTile, StatusRing, ...)
-  theme/               # design system: colors, spacing, typography
-  store/session.tsx    # mock session/role (swap for Supabase Auth later)
-  mock/data.ts         # fake-but-correctly-shaped fixtures
-  types.ts             # data model types (mirror the Supabase schema)
-  utils/               # small helpers (time formatting)
-```
-
-### Working as a team
-
-- **Build screens** by composing from `@/components` and reading values from
-  `@/theme` — don't hard-code colors or spacing, so the app stays consistent.
-- **Data shapes** live in `@/types` and mirror the schema in
-  `PROJECT_CONTEXT.md`. When the backend finalizes Supabase, reconcile field
-  names there and swap `@/mock/data` reads for live queries — screens shouldn't
-  need to change.
-- Look for `TODO(backend):` markers where a mock write should become a real
-  Supabase mutation.
-
-## Previewing both roles
-
-The first screen is a dev role switcher. Tap **Enter as Patient** or **Enter as
-Caregiver** to preview either experience; **Switch** (top-right) returns you.
+Older planning notes live in [`docs/`](./docs).
