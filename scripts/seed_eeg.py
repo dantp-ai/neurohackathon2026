@@ -46,6 +46,10 @@ PATIENTS = [
     {"display_name": "Margaret Chen", "email": "margaret@demo.local"},
     {"display_name": "Harold Müller", "email": "harold@demo.local"},
     {"display_name": "Sofia Rossi", "email": "sofia@demo.local"},
+    # Dedicated target for the live neurodsp stream (pipeline/controller.py).
+    # Seeded as a user so the controller can find it via display_name, but kept
+    # intentionally empty of historical segments so the live points fill a clean map.
+    {"display_name": "Live Monitor", "email": "live@demo.local", "seed_segments": False},
 ]
 CAREGIVERS = [
     {"display_name": "Dr. Sarah Kim", "email": "sarah@demo.local"},
@@ -178,7 +182,13 @@ def main() -> None:
     print("\nSeeding EEG segments (real sub-001 recording, shared between both patients)...")
     now = datetime.now(timezone.utc)
     start = now - timedelta(seconds=len(base_segments) * CHUNK_DURATION_S)
-    for pid in patient_ids:
+    for p, pid in zip(PATIENTS, patient_ids):
+        if not p.get("seed_segments", True):
+            # Keep this patient empty (e.g. the Live Monitor target) so the
+            # live stream fills a clean map from scratch.
+            reset_segments_for(client, pid)
+            print(f"  skipped segment seed for {p['display_name']} (kept empty)")
+            continue
         reset_segments_for(client, pid)
         rows = [
             {
