@@ -1,7 +1,11 @@
 # BetterNǎo
 
-Business video link: [https://youtu.be/-UXYmAW1FtU](https://youtu.be/-UXYmAW1FtU)
-Technical video link: [https://www.youtube.com/watch?v=-UN_MN14Gjw](https://www.youtube.com/watch?v=-UN_MN14Gjw)
+Links:
+
+- Business video link: [https://youtu.be/-UXYmAW1FtU](https://youtu.be/-UXYmAW1FtU)
+
+- Technical video link: [https://www.youtube.com/watch?v=-UN_MN14Gjw](https://www.youtube.com/watch?v=-UN_MN14Gjw)
+
 
 EEG wellbeing monitoring for care teams. Built at the Neurohackathon 2026 (Hong Kong, HealthTech track).
 
