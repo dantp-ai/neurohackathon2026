@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { supabase } from '@/lib/supabase';
 import { EegSegment } from '@/types';
@@ -17,6 +17,7 @@ type State = {
  */
 export function useEegSegments(displayName: string | undefined): State {
   const [state, setState] = useState<State>({ segments: [], loading: true, error: null });
+  const channelId = useRef(Math.random().toString(36).slice(2));
 
   useEffect(() => {
     if (!displayName) {
@@ -55,7 +56,7 @@ export function useEegSegments(displayName: string | undefined): State {
 
         // Live: append newly streamed segments (deduped, kept in time order).
         channel = supabase
-          .channel(`eeg_segments:${user.id}`)
+          .channel(`eeg_segments:${user.id}:${channelId.current}`)
           .on(
             'postgres_changes',
             { event: 'INSERT', schema: 'public', table: 'eeg_segments', filter: `patient_id=eq.${user.id}` },

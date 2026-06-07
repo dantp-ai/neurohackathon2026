@@ -33,6 +33,9 @@ export function useSegmentLabels(displayName?: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const patientId = useRef<string | null>(null);
+  // Unique per hook instance so multiple useSegmentLabels() on one screen don't
+  // collide on the same Realtime channel name (which would drop events).
+  const channelId = useRef(Math.random().toString(36).slice(2));
 
   useEffect(() => {
     if (!displayName) {
@@ -75,7 +78,7 @@ export function useSegmentLabels(displayName?: string) {
         setLoading(false);
 
         channel = supabase
-          .channel(`labels:${user.id}`)
+          .channel(`labels:${user.id}:${channelId.current}`)
           .on(
             'postgres_changes',
             { event: '*', schema: 'public', table: 'labels', filter: `patient_id=eq.${user.id}` },

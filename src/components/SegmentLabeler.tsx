@@ -2,10 +2,9 @@
  * SegmentLabeler — clinician labeling, shown under the embedding map.
  *
  * One simple ML category per point (Seizure / Noise / Fall / …). Apply a label
- * to the tapped point (or the latest streamed point) by: tapping a predefined
- * chip, typing a custom label, or dictating one (OpenRouter voice → text,
- * English or Chinese). Writes to the `labels` table so the continual-learning
- * backend can train on it.
+ * to the tapped point (or the latest streamed point) by tapping a chip (the
+ * tapped chip highlights), typing a custom label, or dictating one (red mic →
+ * OpenRouter voice → text, English or Chinese). Writes to the `labels` table.
  */
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -18,17 +17,20 @@ import {
 } from 'expo-audio';
 
 import { Card } from './Card';
+import { MicIcon } from './MicIcon';
 import { useSegmentLabels } from '@/hooks/useSegmentLabels';
 import { categoryKey, PREDEFINED_LABELS } from '@/lib/labels';
 import { transcribeAudio } from '@/lib/transcribe';
-import { EegSegment } from '@/types';
 import { colors, radius, spacing, typography } from '@/theme';
 import { clockTime } from '@/utils/time';
 
 type Props = {
   displayName: string;
-  segments: EegSegment[];
-  selectedId: string | null;
+  /** The point being labeled (timestamp + anomaly), or null if none selected. */
+  targetTime: string | null;
+  targetAnomaly: number | null;
+  /** Apply a label to the current target (the parent persists/streams as needed). */
+  onLabel: (category: string) => void | Promise<void>;
 };
 
 function blobToBase64(blob: Blob): Promise<string> {
@@ -40,20 +42,17 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
-export function SegmentLabeler({ displayName, segments, selectedId }: Props) {
+export function SegmentLabeler({ displayName, targetTime, targetAnomaly, onLabel }: Props) {
   const { t } = useTranslation();
-  const { labels, add } = useSegmentLabels(displayName);
+  const { labels } = useSegmentLabels(displayName);
   const [draft, setDraft] = useState('');
+  const [picked, setPicked] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
-  const target = useMemo(() => {
-    if (selectedId) return segments.find((s) => s.id === selectedId);
-    return segments.length ? segments[segments.length - 1] : undefined;
-  }, [segments, selectedId]);
-  const targetId = target?.id ?? null;
+  const canLabel = targetTime !== null;
 
   const customCats = useMemo(() => {
     const seen = new Set<string>();
@@ -70,14 +69,15 @@ export function SegmentLabeler({ displayName, segments, selectedId }: Props) {
   }, [labels]);
 
   const apply = (cat: string) => {
-    if (!target) return;
-    add(cat, targetId, 'predefined');
+    if (!canLabel) return;
+    setPicked(cat);
+    onLabel(cat);
   };
 
   const addCustom = () => {
     const v = draft.trim();
-    if (!v || !target) return;
-    add(v, targetId, 'freetext');
+    if (!v || !canLabel) return;
+    apply(v);
     setDraft('');
   };
 
@@ -95,8 +95,8 @@ export function SegmentLabeler({ displayName, segments, selectedId }: Props) {
         const b64 = await blobToBase64(blob);
         const fmt = uri.split('.').pop()?.toLowerCase() || 'm4a';
         const text = await transcribeAudio(b64, fmt);
-        if (text && target) add(text, targetId, 'voice');
-        else if (!text) setErr(t('labels.voiceEmpty'));
+        if (text) apply(text);
+        else setErr(t('labels.voiceEmpty'));
       } catch (e) {
         setErr((e as Error).message);
       } finally {
@@ -125,47 +125,42 @@ export function SegmentLabeler({ displayName, segments, selectedId }: Props) {
     return k ? t(`labelCat.${k}`) : cat;
   };
 
+  const Chip = ({ value, label }: { value: string; label: string }) => {
+    const on = picked === value;
+    return (
+      <Pressable
+        style={[styles.chip, on && styles.chipOn, !canLabel && styles.chipDisabled]}
+        disabled={!canLabel}
+        onPress={() => apply(value)}
+      >
+        <Text style={[styles.chipText, on && styles.chipTextOn]}>{label}</Text>
+      </Pressable>
+    );
+  };
+
   return (
     <Card style={{ gap: spacing.md }}>
       <Text style={styles.title}>{t('labels.title')}</Text>
 
-      {target ? (
+      {targetTime ? (
         <Text style={styles.target}>
-          {t(selectedId ? 'labels.targetSelected' : 'labels.targetLatest', {
-            time: clockTime(target.timestamp_start),
-          })}{' '}
-          · {t('labels.anomaly', { score: Math.round((target.anomaly_score ?? 0) * 100) })}
+          {t('labels.targetSelected', { time: clockTime(targetTime) })}{' '}
+          · {t('labels.anomaly', { score: Math.round((targetAnomaly ?? 0) * 100) })}
         </Text>
       ) : (
         <Text style={styles.target}>{t('labels.noSegments')}</Text>
       )}
       <Text style={styles.hint}>{t('labels.tapHint')}</Text>
 
-      {/* Predefined + previously-used custom labels */}
       <View style={styles.chips}>
         {PREDEFINED_LABELS.map((l) => (
-          <Pressable
-            key={l.key}
-            style={[styles.chip, !target && styles.chipDisabled]}
-            disabled={!target}
-            onPress={() => apply(l.value)}
-          >
-            <Text style={styles.chipText}>{t(`labelCat.${l.key}`)}</Text>
-          </Pressable>
+          <Chip key={l.key} value={l.value} label={t(`labelCat.${l.key}`)} />
         ))}
         {customCats.map((c) => (
-          <Pressable
-            key={c}
-            style={[styles.chip, styles.chipCustom, !target && styles.chipDisabled]}
-            disabled={!target}
-            onPress={() => apply(c)}
-          >
-            <Text style={styles.chipText}>{c}</Text>
-          </Pressable>
+          <Chip key={c} value={c} label={c} />
         ))}
       </View>
 
-      {/* Custom label: free text + voice */}
       <View style={styles.addRow}>
         <TextInput
           style={styles.input}
@@ -178,29 +173,30 @@ export function SegmentLabeler({ displayName, segments, selectedId }: Props) {
         />
         <Pressable
           onPress={addCustom}
-          disabled={!draft.trim() || !target}
-          style={[styles.addBtn, (!draft.trim() || !target) && styles.chipDisabled]}
+          disabled={!draft.trim() || !canLabel}
+          style={[styles.addBtn, (!draft.trim() || !canLabel) && styles.chipDisabled]}
         >
           <Text style={styles.addBtnText}>{t('labels.addBtn')}</Text>
         </Pressable>
       </View>
+
       <Pressable
         onPress={toggleVoice}
-        disabled={!target || busy}
-        style={[styles.voiceBtn, recording && styles.voiceBtnRec, (!target || busy) && styles.chipDisabled]}
+        disabled={!canLabel || busy}
+        style={[styles.voiceBtn, recording && styles.voiceBtnRec, (!canLabel || busy) && styles.chipDisabled]}
       >
         {busy ? (
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color="#FFFFFF" />
         ) : (
-          <Text style={[styles.voiceText, recording && styles.voiceTextRec]}>
-            {recording ? `■  ${t('labels.recording')}` : `🎤  ${t('labels.voice')}`}
-          </Text>
+          <View style={styles.voiceInner}>
+            <MicIcon size={18} color="#FFFFFF" />
+            <Text style={styles.voiceText}>{recording ? t('labels.recording') : t('labels.voice')}</Text>
+          </View>
         )}
       </Pressable>
       {busy ? <Text style={styles.hint}>{t('labels.transcribing')}</Text> : null}
       {err ? <Text style={styles.err}>{err}</Text> : null}
 
-      {/* Recent labels */}
       <Text style={styles.subhead}>{t('labels.recent')}</Text>
       {labels.length === 0 ? (
         <Text style={styles.hint}>{t('labels.none')}</Text>
@@ -232,9 +228,10 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
   },
-  chipCustom: { backgroundColor: '#EFF4FF', borderColor: colors.primary },
+  chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipDisabled: { opacity: 0.4 },
   chipText: { ...typography.label, color: colors.text },
+  chipTextOn: { color: colors.textInverse },
   addRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
   input: {
     flex: 1,
@@ -253,15 +250,14 @@ const styles = StyleSheet.create({
   },
   addBtnText: { ...typography.bodyStrong, color: colors.textInverse },
   voiceBtn: {
-    borderWidth: 1.5,
-    borderColor: colors.primary,
+    backgroundColor: colors.statusBad,
     borderRadius: radius.md,
     paddingVertical: spacing.md,
     alignItems: 'center',
   },
-  voiceBtnRec: { borderColor: colors.statusBad, backgroundColor: '#FDECEC' },
-  voiceText: { ...typography.bodyStrong, color: colors.primary },
-  voiceTextRec: { color: colors.statusBad },
+  voiceBtnRec: { backgroundColor: '#B23636' },
+  voiceInner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  voiceText: { ...typography.bodyStrong, color: '#FFFFFF' },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   labelDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
   labelCat: { ...typography.body, color: colors.text, flex: 1 },

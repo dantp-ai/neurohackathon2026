@@ -58,7 +58,7 @@ export default function DemoScreen() {
           <Text style={styles.countLabel}>{t('demo.windows', { count, total })}</Text>
         </View>
 
-        <SkiaGraph points={shown} domain={domain} showEdges={false} height={360} />
+        <SkiaGraph points={shown} domain={domain} showEdges={false} height={360} pointRadius={4} pointOpacity={0.72} />
 
         {/* progress */}
         <View style={styles.progressTrack}>

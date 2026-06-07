@@ -31,7 +31,7 @@
     "map": "Map",
     "alerts": "Alerts",
     "messages": "Messages",
-    "messagesShort": "msg",
+    "messagesShort": "Msg",
     "labels": "Labels",
     "home": "Home",
     "activity": "Activity",
@@ -114,7 +114,11 @@
     "micDenied": "Microphone permission denied.",
     "history": "Label history",
     "sourceClinician": "Clinician",
-    "sourcePatient": "Patient"
+    "sourcePatient": "Patient",
+    "colTime": "Time",
+    "colSample": "Sample",
+    "colLabel": "Label",
+    "colSource": "Source"
   },
   "labelCat": {
     "seizure": "Seizure",

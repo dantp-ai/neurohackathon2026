@@ -9,6 +9,7 @@ import {
 } from 'expo-audio';
 
 import { AuraRing } from '@/components/AuraRing';
+import { MicIcon } from '@/components/MicIcon';
 import { Button, Card, MetricTile, Screen, TextField, VitalCard } from '@/components';
 import { PatientBrainMap } from '@/components/PatientBrainMap';
 import { useSegmentLabels } from '@/hooks/useSegmentLabels';
@@ -155,11 +156,12 @@ export default function PatientHome() {
           style={[styles.voiceBtn, recording && styles.voiceBtnRec, busy && styles.voiceBtnBusy]}
         >
           {busy ? (
-            <ActivityIndicator color={colors.primary} />
+            <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <Text style={[styles.voiceText, recording && styles.voiceTextRec]}>
-              {recording ? `■  ${t('patient.recording')}` : `🎤  ${t('patient.speak')}`}
-            </Text>
+            <View style={styles.voiceInner}>
+              <MicIcon size={18} color="#FFFFFF" />
+              <Text style={styles.voiceText}>{recording ? t('patient.recording') : t('patient.speak')}</Text>
+            </View>
           )}
         </Pressable>
         <Button title={t('patient.sendCare')} size="lg" disabled={!feeling && !note.trim()} onPress={submit} />
@@ -225,16 +227,15 @@ const styles = StyleSheet.create({
   feelingLabelActive: { color: colors.primary },
   noteInput: { minHeight: 64, textAlignVertical: 'top' },
   voiceBtn: {
-    borderWidth: 1.5,
-    borderColor: colors.primary,
+    backgroundColor: colors.statusBad,
     borderRadius: radius.md,
     paddingVertical: spacing.md,
     alignItems: 'center',
   },
-  voiceBtnRec: { borderColor: colors.statusBad, backgroundColor: '#FDECEC' },
+  voiceBtnRec: { backgroundColor: '#B23636' },
   voiceBtnBusy: { opacity: 0.6 },
-  voiceText: { ...typography.bodyStrong, color: colors.primary },
-  voiceTextRec: { color: colors.statusBad },
+  voiceInner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  voiceText: { ...typography.bodyStrong, color: '#FFFFFF' },
   sentNote: { ...typography.caption, color: colors.statusGood },
   sectionTitle: { ...typography.heading, color: colors.text, marginBottom: spacing.md },
   vitalsTitle: { marginTop: spacing.xl },

@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,15 +7,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Avatar,
   Card,
-  LineChart,
   MessageThread,
   MetricTile,
   StatusPill,
 } from '@/components';
 import { LabelsReview } from '@/components/LabelsReview';
+import { LiveWaveform } from '@/components/LiveWaveform';
 import { SegmentLabeler } from '@/components/SegmentLabeler';
 import { SkiaGraph } from '@/components/SkiaGraph';
-import { StreamControls, StreamSource } from '@/components/StreamControls';
+import type { GraphPoint } from '@/components/SkiaGraph';
+import { StreamControls } from '@/components/StreamControls';
+import { useSegmentLabels } from '@/hooks/useSegmentLabels';
+import { supabase } from '@/lib/supabase';
 import { domainOf, segmentsToPoints } from '@/lib/points';
 import {
   CURRENT_CAREGIVER,
@@ -25,10 +28,8 @@ import {
   labelForEvent,
   patientById,
   scoresFor,
-  timelineFor,
 } from '@/mock/data';
 import { useEegSegments } from '@/hooks/useEegSegments';
-import { useLiveWave } from '@/hooks/useLiveWave';
 import { CheckinResponseValue, Severity, WellnessMetrics } from '@/types';
 import { colors, radius, spacing, StatusLevel, statusColors, typography } from '@/theme';
 import { timeAgo } from '@/utils/time';
@@ -134,37 +135,26 @@ export default function PatientDetail() {
 
 function MetricsTab({ patientId, metrics }: { patientId: string; metrics: WellnessMetrics }) {
   const { t } = useTranslation();
-  const series = timelineFor(patientId);
   const scores = scoresFor(metrics);
   const hr = heartRateFor(patientId);
 
   const [eeg, setEeg] = useState(true);
   const [vitals, setVitals] = useState(true);
-  const [source, setSource] = useState<StreamSource>('simulated');
 
-  // Live scrolling waveforms while "streaming"; frozen historical when stopped.
-  const energy = useLiveWave(eeg, { base: 2.6, amp: 1.1, phase: 0 });
-  const attention = useLiveWave(eeg, { base: 3.0, amp: 1.0, phase: 2 });
-  const relax = useLiveWave(eeg, { base: 2.8, amp: 0.9, phase: 4 });
-  const hrWave = useLiveWave(vitals, { base: hr.value, amp: 9, phase: 1, periodMs: 600 });
-
-  const energyVals = eeg ? energy : series.map((p) => p.fatigue);
-  const attentionVals = eeg ? attention : series.map((p) => p.attention);
-  const relaxVals = eeg ? relax : series.map((p) => p.relaxation);
-  const hrVals = vitals ? hrWave : hr.trend;
-  const hrMin = vitals ? hr.value - 18 : Math.min(...hr.trend) - 5;
-  const hrMax = vitals ? hr.value + 18 : Math.max(...hr.trend) + 5;
-  const hrNow = Math.round(hrVals[hrVals.length - 1] ?? hr.value);
+  const eegLines = [
+    { color: colors.fatigue, base: 2.8, amp: 1.1, cycles: 3, phase: 0 },
+    { color: colors.attention, base: 3.0, amp: 1.0, cycles: 4, phase: 1.2 },
+    { color: colors.relaxation, base: 2.7, amp: 0.9, cycles: 2, phase: 2.4 },
+  ];
+  const hrLines = [{ color: colors.heart, base: hr.value, amp: 9, cycles: 5, phase: 0 }];
 
   return (
     <View style={{ gap: spacing.lg }}>
       <StreamControls
         eeg={eeg}
         vitals={vitals}
-        source={source}
         onToggleEeg={() => setEeg((v) => !v)}
         onToggleVitals={() => setVitals((v) => !v)}
-        onSource={setSource}
       />
       <View style={styles.metricsRow}>
         <MetricTile label={t('metrics.energy')} score={scores.fatigue} accent={colors.fatigue} />
@@ -173,13 +163,12 @@ function MetricsTab({ patientId, metrics }: { patientId: string; metrics: Wellne
       </View>
 
       <Text style={styles.sectionTitle}>{t('metrics.lastHour')}</Text>
-      <LineChart
-        series={[
-          { label: t('metrics.energy'), color: colors.fatigue, values: energyVals },
-          { label: t('metrics.attention'), color: colors.attention, values: attentionVals },
-          { label: t('metrics.relaxation'), color: colors.relaxation, values: relaxVals },
-        ]}
-      />
+      <LiveWaveform lines={eegLines} active={eeg} min={0.5} max={5} height={150} />
+      <View style={styles.legendRow}>
+        <LegendDot color={colors.fatigue} label={t('metrics.energy')} />
+        <LegendDot color={colors.attention} label={t('metrics.attention')} />
+        <LegendDot color={colors.relaxation} label={t('metrics.relaxation')} />
+      </View>
 
       <Text style={styles.sectionTitle}>{t('metrics.vitals')}</Text>
       <Card style={{ gap: spacing.md }}>
@@ -187,19 +176,23 @@ function MetricsTab({ patientId, metrics }: { patientId: string; metrics: Wellne
           <Text style={styles.vitalName}>{`❤️  ${t('metrics.heartRate')}`}</Text>
           <View style={styles.vitalRight}>
             <Text style={[styles.vitalValue, { color: statusColors[hr.status].fg }]}>
-              {hrNow}
+              {hr.value}
               <Text style={styles.vitalUnit}>{` ${t('common.bpm')}`}</Text>
             </Text>
             <StatusPill level={hr.status} label={t(hr.labelKey)} />
           </View>
         </View>
-        <LineChart
-          series={[{ label: `${t('metrics.heartRate')} (${t('common.bpm')})`, color: colors.heart, values: hrVals }]}
-          min={hrMin}
-          max={hrMax}
-          height={120}
-        />
+        <LiveWaveform lines={hrLines} active={vitals} min={hr.value - 18} max={hr.value + 18} height={120} />
       </Card>
+    </View>
+  );
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <View style={styles.legendItem}>
+      <View style={[styles.legendDot, { backgroundColor: color }]} />
+      <Text style={styles.legendLabel}>{label}</Text>
     </View>
   );
 }
@@ -209,9 +202,100 @@ function MetricsTab({ patientId, metrics }: { patientId: string; metrics: Wellne
 function MapTab({ displayName }: { displayName: string }) {
   const { t } = useTranslation();
   const { segments, loading, error } = useEegSegments(displayName);
-  const points = useMemo(() => segmentsToPoints(segments), [segments]);
-  const domain = useMemo(() => domainOf(points), [points]);
+  const { add } = useSegmentLabels(displayName);
+  const base = useMemo(() => segmentsToPoints(segments), [segments]);
+  const domain = useMemo(() => domainOf(base), [base]);
+
+  const [live, setLive] = useState<(GraphPoint & { tISO: string })[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [newestId, setNewestId] = useState<string | null>(null);
+  const manualRef = useRef(false);
+  const pidRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    supabase
+      .from('users')
+      .select('id')
+      .eq('display_name', displayName)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (active) pidRef.current = (data as { id?: string } | null)?.id ?? null;
+      });
+    return () => {
+      active = false;
+    };
+  }, [displayName]);
+
+  // Stream a new simulated point in near the cloud every few seconds.
+  useEffect(() => {
+    if (base.length === 0) return;
+    const iv = setInterval(() => {
+      const seed = base[Math.floor(Math.random() * base.length)];
+      const np = {
+        id: `live-${Date.now()}`,
+        x: seed.x + (Math.random() - 0.5) * 0.7,
+        y: seed.y + (Math.random() - 0.5) * 0.7,
+        health: Math.max(0, Math.min(1, seed.health + (Math.random() - 0.5) * 0.25)),
+        tISO: new Date().toISOString(),
+      };
+      setLive((l) => [...l.slice(-11), np]);
+      setNewestId(np.id);
+      if (!manualRef.current) setSelectedId(np.id);
+    }, 4000);
+    return () => clearInterval(iv);
+  }, [base.length]);
+
+  const points = useMemo(() => [...base, ...live], [base, live]);
+
+  const target = useMemo(() => {
+    if (!selectedId) return null;
+    const lp = live.find((p) => p.id === selectedId);
+    if (lp) return { live: true as const, id: lp.id, tISO: lp.tISO, anomaly: lp.health, x: lp.x, y: lp.y };
+    const seg = segments.find((s) => s.id === selectedId);
+    if (seg) return { live: false as const, id: seg.id, tISO: seg.timestamp_start, anomaly: seg.anomaly_score };
+    return null;
+  }, [selectedId, live, segments]);
+
+  const onSelect = useCallback((id: string) => {
+    manualRef.current = true;
+    setSelectedId(id);
+  }, []);
+
+  const onLabel = useCallback(
+    async (category: string) => {
+      if (!target) return;
+      manualRef.current = false; // resume auto-follow after labeling
+      if (!target.live) {
+        add(category, target.id, 'predefined', 'clinician');
+        return;
+      }
+      // Persist the live point as a real segment, then label it.
+      let segId: string | null = null;
+      if (pidRef.current) {
+        const { data } = await supabase
+          .from('eeg_segments')
+          .insert({
+            patient_id: pidRef.current,
+            device_id: 'neurodsp-live',
+            timestamp_start: target.tISO,
+            duration_s: 30,
+            fatigue: 0.5,
+            attention: 0.5,
+            mood: 0.5,
+            anomaly_score: Number(target.anomaly ?? 0),
+            umap_x: target.x,
+            umap_y: target.y,
+          })
+          .select('id')
+          .single();
+        segId = (data as { id?: string } | null)?.id ?? null;
+      }
+      add(category, segId, 'predefined', 'clinician');
+      setLive((l) => l.filter((p) => p.id !== target.id)); // realtime adds the persisted one
+    },
+    [target, add],
+  );
 
   if (loading) {
     return <Text style={styles.empty}>{t('common.loading')}</Text>;
@@ -231,11 +315,12 @@ function MapTab({ displayName }: { displayName: string }) {
             <SkiaGraph
               points={points}
               domain={domain}
-              showEdges
               height={340}
               selectedId={selectedId}
-              onSelectPoint={setSelectedId}
+              onSelectPoint={onSelect}
               interactive
+              pulseId={newestId}
+              pointOpacity={0.85}
             />
             <View style={styles.mapLegend}>
               <Text style={styles.legendText}>{t('embedding.healthy')}</Text>
@@ -245,7 +330,12 @@ function MapTab({ displayName }: { displayName: string }) {
           </>
         )}
       </Card>
-      <SegmentLabeler displayName={displayName} segments={segments} selectedId={selectedId} />
+      <SegmentLabeler
+        displayName={displayName}
+        targetTime={target?.tISO ?? null}
+        targetAnomaly={target?.anomaly ?? null}
+        onLabel={onLabel}
+      />
     </View>
   );
 }
@@ -319,6 +409,10 @@ const styles = StyleSheet.create({
   tabLabelActive: { color: colors.text },
   content: { padding: spacing.lg },
   metricsRow: { flexDirection: 'row', gap: spacing.md },
+  legendRow: { flexDirection: 'row', gap: spacing.lg, marginTop: -spacing.sm },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  legendDot: { width: 10, height: 10, borderRadius: 5 },
+  legendLabel: { ...typography.caption, color: colors.textMuted },
   sectionTitle: { ...typography.heading, color: colors.text },
   cardTitle: { ...typography.bodyStrong, color: colors.text },
   empty: { ...typography.body, color: colors.textMuted },

@@ -37,6 +37,10 @@ export type EmbeddingGraphProps = {
   grid?: boolean;
   /** Draw an expanding "adding" aura on this point (e.g. the newest one). */
   pulseId?: string | null;
+  /** Point radius (default 6). */
+  pointRadius?: number;
+  /** Point opacity (default 1) — slight transparency reads better on dense clouds. */
+  pointOpacity?: number;
 };
 
 const R = 6;
@@ -108,7 +112,10 @@ export function EmbeddingGraph({
   interactive = false,
   grid = true,
   pulseId,
+  pointRadius,
+  pointOpacity,
 }: EmbeddingGraphProps) {
+  const pr = pointRadius ?? R;
   const [size, setSize] = useState({ w: 0, h: height });
   const onLayout = (e: LayoutChangeEvent) =>
     setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height });
@@ -228,7 +235,7 @@ export function EmbeddingGraph({
     pulse.value = 0;
     pulse.value = withRepeat(withTiming(1, { duration: 1400 }), -1, false);
   }, [pulse]);
-  const pulseR = useDerivedValue(() => R + 4 + pulse.value * 18);
+  const pulseR = useDerivedValue(() => pr + 4 + pulse.value * 18);
   const pulseOpacity = useDerivedValue(() => (1 - pulse.value) * 0.65);
 
   const canvas = (
@@ -239,7 +246,7 @@ export function EmbeddingGraph({
           <Path path={edgePath} style="stroke" strokeWidth={1} color="rgba(120,130,140,0.35)" />
         )}
         {entries.map((e, i) => (
-          <Circle key={i} cx={e.sx} cy={e.sy} r={R} color={e.color} />
+          <Circle key={i} cx={e.sx} cy={e.sy} r={pr} color={e.color} opacity={pointOpacity} />
         ))}
         {pulsed && (
           <Circle
@@ -254,8 +261,8 @@ export function EmbeddingGraph({
         )}
         {selected && (
           <>
-            <Circle cx={selected.sx} cy={selected.sy} r={R + 5} style="stroke" strokeWidth={3} color="#0B1220" />
-            <Circle cx={selected.sx} cy={selected.sy} r={R + 5} style="stroke" strokeWidth={1.5} color="#FFFFFF" />
+            <Circle cx={selected.sx} cy={selected.sy} r={pr + 5} style="stroke" strokeWidth={3} color="#0B1220" />
+            <Circle cx={selected.sx} cy={selected.sy} r={pr + 5} style="stroke" strokeWidth={1.5} color="#FFFFFF" />
           </>
         )}
       </Group>

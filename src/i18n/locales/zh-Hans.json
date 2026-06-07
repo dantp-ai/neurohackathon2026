@@ -114,7 +114,11 @@
     "micDenied": "麦克风权限被拒绝。",
     "history": "标签历史",
     "sourceClinician": "临床医生",
-    "sourcePatient": "患者"
+    "sourcePatient": "患者",
+    "colTime": "时间",
+    "colSample": "样本",
+    "colLabel": "标签",
+    "colSource": "来源"
   },
   "labelCat": {
     "seizure": "癫痫",
