@@ -53,6 +53,7 @@
     "setup": "supabase start && uv run python scripts/seed_eeg.py && uv run python scripts/compute_umap.py && uv run python scripts/seed_trajectory.py && node scripts/dev.js",
     "stream": "node scripts/dev.js --stream",
     "reset-project": "node ./scripts/reset-project.js",
+    "postinstall": "mkdir -p public && cp -f node_modules/canvaskit-wasm/bin/full/canvaskit.wasm public/canvaskit.wasm",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",

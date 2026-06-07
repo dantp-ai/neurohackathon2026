@@ -36,6 +36,9 @@ yarn-error.*
 # generated demo artifacts
 scripts/decline_demo.mp4
 
+# canvaskit.wasm is copied here on `npm ci` via the postinstall hook
+public/canvaskit.wasm
+
 # typescript
 *.tsbuildinfo
 
