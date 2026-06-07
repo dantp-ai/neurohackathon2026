@@ -15,12 +15,12 @@ import { LabelsReview } from '@/components/LabelsReview';
 import { LiveWaveform } from '@/components/LiveWaveform';
 import { SegmentLabeler } from '@/components/SegmentLabeler';
 import { SkiaGraph } from '@/components/SkiaGraph';
-import type { GraphPoint } from '@/components/SkiaGraph';
 import { StreamControls } from '@/components/StreamControls';
 import { useSegmentLabels } from '@/hooks/useSegmentLabels';
+import { generateBlob, nextBlobPoint, type BlobPoint } from '@/lib/blob';
 import { viridis } from '@/lib/colormap';
 import { supabase } from '@/lib/supabase';
-import { domainOf, segmentsToPoints } from '@/lib/points';
+import { domainOf } from '@/lib/points';
 import {
   CURRENT_CAREGIVER,
   checkinForEvent,
@@ -30,7 +30,6 @@ import {
   patientById,
   scoresFor,
 } from '@/mock/data';
-import { useEegSegments } from '@/hooks/useEegSegments';
 import { CheckinResponseValue, Severity, WellnessMetrics } from '@/types';
 import { colors, radius, spacing, StatusLevel, statusColors, typography } from '@/theme';
 import { timeAgo } from '@/utils/time';
@@ -202,12 +201,17 @@ function LegendDot({ color, label }: { color: string; label: string }) {
 
 function MapTab({ displayName }: { displayName: string }) {
   const { t } = useTranslation();
-  const { segments, loading, error } = useEegSegments(displayName);
   const { add } = useSegmentLabels(displayName);
-  const base = useMemo(() => segmentsToPoints(segments), [segments]);
-  const domain = useMemo(() => domainOf(base, 0.04), [base]);
+  // Start with a random blob; stream new points around it (some are outliers).
+  const blob = useMemo(() => generateBlob(displayName), [displayName]);
+  const domain = useMemo(() => {
+    const d = domainOf(blob);
+    const mx = (d.xMax - d.xMin) * 0.5 || 1;
+    const my = (d.yMax - d.yMin) * 0.5 || 1;
+    return { xMin: d.xMin - mx, xMax: d.xMax + mx, yMin: d.yMin - my, yMax: d.yMax + my };
+  }, [blob]);
 
-  const [live, setLive] = useState<(GraphPoint & { tISO: string })[]>([]);
+  const [live, setLive] = useState<BlobPoint[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [newestId, setNewestId] = useState<string | null>(null);
   const manualRef = useRef(false);
@@ -228,39 +232,25 @@ function MapTab({ displayName }: { displayName: string }) {
     };
   }, [displayName]);
 
-  // Stream a new simulated point in near the cloud every few seconds.
   useEffect(() => {
-    if (base.length === 0) return;
     const iv = setInterval(() => {
-      const seed = base[Math.floor(Math.random() * base.length)];
-      const np = {
-        id: `live-${Date.now()}`,
-        x: seed.x + (Math.random() - 0.5) * 0.7,
-        y: seed.y + (Math.random() - 0.5) * 0.7,
-        health: Math.max(0, Math.min(1, seed.health + (Math.random() - 0.5) * 0.25)),
-        tISO: new Date().toISOString(),
-      };
-      setLive((l) => [...l.slice(-11), np]);
+      const np = nextBlobPoint(blob);
+      setLive((l) => [...l.slice(-40), np]);
       setNewestId(np.id);
       if (!manualRef.current) setSelectedId(np.id);
-    }, 4000);
+    }, 3500);
     return () => clearInterval(iv);
-  }, [base.length]);
+  }, [blob]);
 
-  const points = useMemo(() => [...base, ...live], [base, live]);
+  const points = useMemo(() => [...blob, ...live], [blob, live]);
 
   const target = useMemo(() => {
-    // Fall back to the most recent point so the labeler is active immediately.
     const id =
-      selectedId ??
-      (live.length ? live[live.length - 1].id : segments.length ? segments[segments.length - 1].id : null);
+      selectedId ?? (live.length ? live[live.length - 1].id : blob.length ? blob[blob.length - 1].id : null);
     if (!id) return null;
-    const lp = live.find((p) => p.id === id);
-    if (lp) return { live: true as const, id: lp.id, tISO: lp.tISO, anomaly: lp.health, x: lp.x, y: lp.y };
-    const seg = segments.find((s) => s.id === id);
-    if (seg) return { live: false as const, id: seg.id, tISO: seg.timestamp_start, anomaly: seg.anomaly_score };
-    return null;
-  }, [selectedId, live, segments]);
+    const p = live.find((x) => x.id === id) ?? blob.find((x) => x.id === id);
+    return p ? { id: p.id, tISO: p.tISO, anomaly: p.health, x: p.x, y: p.y } : null;
+  }, [selectedId, live, blob]);
 
   const onSelect = useCallback((id: string) => {
     manualRef.current = true;
@@ -271,18 +261,14 @@ function MapTab({ displayName }: { displayName: string }) {
     async (category: string) => {
       if (!target) return;
       manualRef.current = false; // resume auto-follow after labeling
-      if (!target.live) {
-        add(category, target.id, 'predefined', 'clinician');
-        return;
-      }
-      // Persist the live point as a real segment, then label it.
+      // Persist the labeled point as a segment, then label it.
       let segId: string | null = null;
       if (pidRef.current) {
         const { data } = await supabase
           .from('eeg_segments')
           .insert({
             patient_id: pidRef.current,
-            device_id: 'neurodsp-live',
+            device_id: 'sim-live',
             timestamp_start: target.tISO,
             duration_s: 30,
             fatigue: 0.5,
@@ -297,48 +283,35 @@ function MapTab({ displayName }: { displayName: string }) {
         segId = (data as { id?: string } | null)?.id ?? null;
       }
       add(category, segId, 'predefined', 'clinician');
-      setLive((l) => l.filter((p) => p.id !== target.id)); // realtime adds the persisted one
     },
     [target, add],
   );
 
-  if (loading) {
-    return <Text style={styles.empty}>{t('common.loading')}</Text>;
-  }
-  if (error) {
-    return <Text style={styles.empty}>{t('caregiver.segmentsError', { error })}</Text>;
-  }
   return (
     <View style={{ gap: spacing.lg }}>
       <Card style={{ gap: spacing.md }}>
         <Text style={styles.sectionTitle}>{t('embedding.title')}</Text>
         <Text style={styles.empty}>{t('embedding.subtitle', { count: points.length })}</Text>
-        {points.length === 0 ? (
-          <Text style={styles.empty}>{t('embedding.empty')}</Text>
-        ) : (
-          <>
-            <SkiaGraph
-              points={points}
-              domain={domain}
-              height={340}
-              selectedId={selectedId}
-              onSelectPoint={onSelect}
-              interactive
-              pulseId={newestId}
-              pointOpacity={0.85}
-              colorMode="time"
-            />
-            <View style={styles.mapLegend}>
-              <Text style={styles.legendText}>{t('embedding.start')}</Text>
-              <View style={styles.viridisBar}>
-                {Array.from({ length: 16 }).map((_, i) => (
-                  <View key={i} style={{ flex: 1, backgroundColor: viridis(i / 15) }} />
-                ))}
-              </View>
-              <Text style={styles.legendText}>{t('embedding.now')}</Text>
-            </View>
-          </>
-        )}
+        <SkiaGraph
+          points={points}
+          domain={domain}
+          height={340}
+          selectedId={selectedId}
+          onSelectPoint={onSelect}
+          interactive
+          pulseId={newestId}
+          pointOpacity={0.85}
+          colorMode="time"
+        />
+        <View style={styles.mapLegend}>
+          <Text style={styles.legendText}>{t('embedding.start')}</Text>
+          <View style={styles.viridisBar}>
+            {Array.from({ length: 16 }).map((_, i) => (
+              <View key={i} style={{ flex: 1, backgroundColor: viridis(i / 15) }} />
+            ))}
+          </View>
+          <Text style={styles.legendText}>{t('embedding.now')}</Text>
+        </View>
       </Card>
       <SegmentLabeler
         displayName={displayName}
