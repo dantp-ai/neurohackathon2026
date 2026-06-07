@@ -45,6 +45,7 @@ EEG_FILE = Path(__file__).parent.parent / "data" / "sub-001_task-eyesclosed_eeg.
 PATIENTS = [
     {"display_name": "Margaret Chen", "email": "margaret@demo.local"},
     {"display_name": "Harold Müller", "email": "harold@demo.local"},
+    {"display_name": "Sofia Rossi", "email": "sofia@demo.local"},
 ]
 CAREGIVERS = [
     {"display_name": "Dr. Sarah Kim", "email": "sarah@demo.local"},

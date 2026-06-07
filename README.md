@@ -7,10 +7,53 @@ monitor the cognitive and physical wellbeing of elderly users via EEG and
 wearable data. See [`PROJECT_CONTEXT.md`](./PROJECT_CONTEXT.md) for the full
 product spec and data model.
 
+## Run the full demo
+
+Everything needed to clone this repo and run the whole thing end-to-end.
+
+**You need**
+
+- **Node ≥ 20** (`.nvmrc`) + npm — the Expo app.
+- **Docker Desktop** + **Supabase CLI** (`brew install supabase/tap/supabase`) — the local backend (Postgres + auth + realtime).
+- **uv** (`brew install uv`) — runs the Python pipeline + seed scripts.
+- **neuroencoder model weights** (gated Hugging Face repo) — only to (re)generate EEG embeddings (seeding + the live stream). Not needed to run against an already-seeded DB.
+- An **OpenRouter API key** — powers voice → label (clinician labeling + patient check-in); set `EXPO_PUBLIC_OPENROUTER_API_KEY` in `.env.local`.
+
+**One-time setup**
+
+```bash
+nvm use && npm ci                 # app dependencies
+npx setup-skia-web public         # CanvasKit WASM for the web build -> public/canvaskit.wasm
+cp .env.example .env.local        # fill SUPABASE keys from `supabase status`; add EXPO_PUBLIC_OPENROUTER_API_KEY
+```
+
+**Run**
+
+```bash
+npm run setup     # first run: supabase start + seed all demo data + launch app + neurodsp stream
+npm run dev       # later runs: supabase start + launch app + neurodsp stream
+```
+
+Then press **`w`** for the web app (open `/demo`), or scan for a **dev build** on a phone.
+
+- **Phone:** needs a **dev build** (`npx expo run:ios` / `run:android`) — Skia + `expo-audio` aren't in Expo Go. Keep the phone and the Mac on the **same Wi-Fi** (the app auto-resolves the Supabase host, so no manual IP).
+- **Demo logins** (one tap on the login screen): **Margaret Chen** (patient) · **Dr. Mei Nguyen** (caregiver).
+- **Live neurodsp stream** on its own: `npm run stream`.
+
+**Demo data / seed scripts**
+
+- `scripts/seed_trajectory.py` — the `/demo` healthy→dementia trajectory (reads `data/*.npz`; **no model needed**).
+- `scripts/seed_eeg.py` — demo patients (Margaret, Harold, Sofia) + EEG segments from the real `sub-001` recording via the foundation model. **Yes, this is used** — it runs inside `npm run setup`.
+- `scripts/compute_umap.py` — 2-D UMAP coordinates for the seeded segments.
+
+All seeds are idempotent. `npm run setup` runs them in order; the app then reads everything from Supabase live (chat, labels, and embedding maps update in realtime).
+
 ## Status
 
-Frontend scaffold + all basic screens are in, running against **mock data**
-(no backend yet). One app, two roles: **patient** and **caregiver**.
+Full app + local backend: **Supabase** (Postgres + auth + realtime) wired to the
+EEG **pipeline** (foundation-model embeddings, UMAP, anomaly detection) plus a
+live **neurodsp** stream. One app, two roles — **patient** and **caregiver** —
+in English and 简体中文.
 
 ## Prerequisites
 
