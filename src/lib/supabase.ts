@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 const envUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -12,28 +13,32 @@ if (!envUrl || !anonKey) {
 
 /**
  * Resolve the Supabase URL. In dev, the configured URL points at a LAN IP that
- * goes stale whenever the machine changes network (hotspot → WiFi, etc.), which
- * breaks the app on physical devices. Since local Supabase runs on the same
- * machine as the Metro dev server, we derive the host from whatever host the
- * app actually loaded Metro from — so it always matches the current network on
- * any device, with no manual .env edits. Only applies to local/LAN http URLs;
- * a remote https URL (real Supabase) is used verbatim.
+ * goes stale whenever the machine changes network — which breaks the app. Since
+ * local Supabase runs on the same machine as the app's host, we derive the host
+ * at runtime so it always matches the current network, no manual .env edits:
+ *   • web    → the browser's own host (window.location.hostname) — always the
+ *              dev machine, reachable regardless of LAN IP.
+ *   • native → the Metro dev-server host the app actually connected to.
+ * Only applies to local/LAN http URLs; a remote https URL is used verbatim.
  */
 function resolveSupabaseUrl(configured: string): string {
   const isLocal = /^http:\/\/(localhost|127\.0\.0\.1|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(
     configured,
   );
   if (!isLocal) return configured;
+  const port = configured.split(':')[2] ?? '54321';
+
+  if (Platform.OS === 'web') {
+    const host =
+      (typeof window !== 'undefined' && window.location?.hostname) || 'localhost';
+    return `http://${host}:${port}`;
+  }
 
   const hostUri =
     Constants.expoConfig?.hostUri ??
-    // older runtimes expose the dev host here instead
     (Constants as unknown as { expoGoConfig?: { debuggerHost?: string } }).expoGoConfig?.debuggerHost;
   const devHost = hostUri?.split(':')[0];
-  if (!devHost) return configured;
-
-  const port = configured.split(':')[2] ?? '54321';
-  return `http://${devHost}:${port}`;
+  return devHost ? `http://${devHost}:${port}` : configured;
 }
 
 export const supabaseUrl = resolveSupabaseUrl(envUrl);
