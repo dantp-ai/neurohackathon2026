@@ -8,10 +8,9 @@ import {
   useAudioRecorder,
 } from 'expo-audio';
 
-import { AuraRing } from '@/components/AuraRing';
+import { AuraBlob } from '@/components/AuraBlob';
 import { MicIcon } from '@/components/MicIcon';
 import { Button, Card, MetricTile, Screen, TextField, VitalCard } from '@/components';
-import { PatientBrainMap } from '@/components/PatientBrainMap';
 import { useSegmentLabels } from '@/hooks/useSegmentLabels';
 import { categorizeText } from '@/lib/categorize';
 import { transcribeAudio } from '@/lib/transcribe';
@@ -19,7 +18,6 @@ import { CURRENT_PATIENT, heartRateFor, scoresFor } from '@/mock/data';
 import { useSession } from '@/store/session';
 import { CheckinResponseValue } from '@/types';
 import { colors, radius, spacing, typography } from '@/theme';
-import { timeAgo } from '@/utils/time';
 
 const FEELINGS: { value: CheckinResponseValue; labelKey: string; label: string }[] = [
   { value: 'ok', labelKey: 'feelings.okay', label: 'Feeling okay' },
@@ -43,7 +41,6 @@ export default function PatientHome() {
   const patient = CURRENT_PATIENT;
   const scores = scoresFor(patient.metrics);
   const hr = heartRateFor(patient.user.id);
-  const wellness = (scores.fatigue + scores.attention + scores.relaxation) / 15;
   const { add: addLabel } = useSegmentLabels(patient.user.display_name);
 
   const [feeling, setFeeling] = useState<CheckinResponseValue | null>(null);
@@ -117,12 +114,7 @@ export default function PatientHome() {
       </View>
 
       <View style={styles.ringWrap}>
-        <AuraRing
-          score={wellness}
-          level={patient.status}
-          label={t('patient.wellness')}
-          sublabel={t('caregiver.updated', { time: timeAgo(patient.lastUpdated) })}
-        />
+        <AuraBlob level={patient.status} />
       </View>
 
       <Card style={styles.checkinCard}>
@@ -185,10 +177,6 @@ export default function PatientHome() {
         statusLabel={t(hr.labelKey)}
         trend={hr.trend}
       />
-
-      <View style={styles.mapWrap}>
-        <PatientBrainMap displayName={patient.user.display_name} />
-      </View>
     </Screen>
   );
 }
@@ -240,5 +228,4 @@ const styles = StyleSheet.create({
   sectionTitle: { ...typography.heading, color: colors.text, marginBottom: spacing.md },
   vitalsTitle: { marginTop: spacing.xl },
   metrics: { flexDirection: 'row', gap: spacing.md },
-  mapWrap: { marginTop: spacing.xl },
 });
