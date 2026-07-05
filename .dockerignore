@@ -1,0 +1,54 @@
+# Keep the build context lean. Anything not needed by Dockerfile.pipeline
+# should be listed here — copying GB of node_modules over the Docker socket
+# is the #1 cause of slow builds.
+
+# Node / Expo
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+ios/
+android/
+
+# Python local envs / caches
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Git
+.git/
+.gitignore
+
+# Frontend assets (not used by the Python pipeline)
+assets/
+public/
+src/
+
+# Local secrets / env
+.env.local
+.env*.local
+
+# Large host-distributed data files (bind-mounted via compose instead).
+# Keep small reference files in data/ for ad-hoc COPY in future shippable images.
+data/neurohackathon_trajectory_full.npz
+data/*.set
+
+# Generated demo artifacts
+scripts/decline_demo.mp4
+
+# Docs / docs-only assets
+docs/
+
+# Editor / OS junk
+.DS_Store
+.vscode/
+.idea/
+
+# Lockfiles for other ecosystems (we only need uv.lock)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

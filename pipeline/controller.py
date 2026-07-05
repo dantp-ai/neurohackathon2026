@@ -15,6 +15,7 @@ the map — a live version of the cognitive-decline trajectory.
 Streams into an existing patient so the points appear on a screen you can open.
 Each patient also streams client-side in the app, so the controller is optional.
 """
+import logging
 import math
 import os
 import time
@@ -33,6 +34,18 @@ WINDOW_S = 30.0
 POINT_EVERY_S = 2.5
 SFREQ = 250.0
 DRIFT_RATE = 0.22  # radians/tick; ~60s for a full healthy→unhealthy→healthy cycle
+HEARTBEAT_EVERY = 24  # summarize roughly once a minute at POINT_EVERY_S = 2.5
+
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s %(levelname)s %(message)s",
+    datefmt="%H:%M:%S",
+)
+# httpx/httpcore log every request at INFO — noisy for a 24-points/min stream.
+# Cap them at WARNING so only the actual pipeline logs show through.
+for noisy in ("httpx", "httpcore", "urllib3", "hpack"):
+    logging.getLogger(noisy).setLevel(logging.WARNING)
+log = logging.getLogger("pipeline.controller")
 
 
 def get_or_create_patient(sb, name: str) -> str:
@@ -57,10 +70,21 @@ def main() -> None:
     n = min(len(h_data), len(u_data))
     win = int(WINDOW_S * SFREQ)
     step = int(POINT_EVERY_S * SFREQ)
-    print(f"Live neurodsp stream -> '{name}' [{pid}]; drifting healthy↔unhealthy, point every {POINT_EVERY_S:g}s")
+    log.info(
+        "Live neurodsp stream -> '%s' [%s]; drifting healthy↔unhealthy, point every %gs",
+        name,
+        pid,
+        POINT_EVERY_S,
+    )
 
     cursor = win
     tick = 0
+    # Rolling summary state for the periodic heartbeat.
+    hb_written = 0
+    hb_failed = 0
+    hb_phase_min = 1.0
+    hb_phase_max = 0.0
+
     while True:
         if cursor > n:
             cursor = win
@@ -90,9 +114,25 @@ def main() -> None:
         try:
             sb.table("eeg_segments").insert(row).execute()
             xy = f"({umap_x:.2f},{umap_y:.2f})" if umap_x is not None else "(—)"
-            print(f"  + point phase={phase:.2f} anomaly={anomaly:.2f} xy={xy}")
+            log.debug("+ point phase=%.2f anomaly=%.2f xy=%s", phase, anomaly, xy)
+            hb_written += 1
         except Exception as exc:
-            print(f"[WARN] insert failed: {exc}")
+            log.warning("insert failed: %s", exc)
+            hb_failed += 1
+
+        hb_phase_min = min(hb_phase_min, phase)
+        hb_phase_max = max(hb_phase_max, phase)
+        if (tick + 1) % HEARTBEAT_EVERY == 0:
+            log.info(
+                "streamed %d points (%d failed) · phase %.2f→%.2f in the last ~%gs",
+                hb_written,
+                hb_failed,
+                hb_phase_min,
+                hb_phase_max,
+                HEARTBEAT_EVERY * POINT_EVERY_S,
+            )
+            hb_written = hb_failed = 0
+            hb_phase_min, hb_phase_max = 1.0, 0.0
 
         cursor += step
         tick += 1
@@ -103,4 +143,4 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\nStream stopped.")
+        log.info("stream stopped.")
