@@ -59,7 +59,11 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "npm run typecheck && npm run test:py",
+    "test:py": "uv run pytest",
+    "test:slow": "SLOW=1 uv run pytest -m slow",
+    "test:e2e": "supabase db reset && E2E=1 uv run pytest -m e2e"
   },
   "private": true
 }
