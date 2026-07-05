@@ -107,6 +107,20 @@ weights once; subsequent runs start in seconds.
 
 All three are idempotent & re-running replaces existing rows.
 
+## Tests
+
+
+| Command | What it runs |
+|---|---|
+| `npm test` | `tsc --noEmit` + fast pytest suite. Matches CI. |
+| `npm run test:py` | Fast pytest only. |
+| `npm run test:slow` | The foundation-model tests (requires HF auth + ~2min cold-start). |
+| `npm run test:e2e` | Runs `supabase db reset` then the full seed pipeline against the local DB, asserting the demo state (users, segments, UMAP coords). **CAUTION**: deletes local Supabase data. |
+
+*Notes*
+
+- CI (`.github/workflows/ci.yml`) runs `typecheck` and `pytest (fast)` on every push and PR.
+
 ## How it's built
 
 - **App** — React Native + Expo (Expo Router), Skia (waveforms + maps), Reanimated + Gesture Handler, i18next (EN / 简体中文).

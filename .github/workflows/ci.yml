@@ -1,0 +1,90 @@
+# CI: runs the fast, hermetic parts of the test suite on every push and PR.
+#
+# What's *not* here (on purpose):
+#   - `slow` tests (real HF foundation model): opt-in via `SLOW=1` locally.
+#     Adding them here would need HF auth + ~500 MB weights and a slow start.
+#   - `e2e` tests (Supabase + seed scripts): opt-in via `E2E=1` locally.
+#     Adding them here would need the gated HF model, the trajectory NPZ
+#     (distributed out-of-band), and a Supabase instance in the runner.
+#
+# Both are runnable in CI later via workflow_dispatch - see the "e2e-full"
+# job below, disabled by default. Flip it on when you're willing to wire up
+# HF_TOKEN as a secret and check in / mirror the trajectory NPZ.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Cancel superseded runs on the same branch/PR to save minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    name: typecheck (tsc --noEmit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+
+  pytest:
+    name: pytest (fast)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install Python 3.12
+        run: uv python install 3.12
+      - name: Install deps (incl. dev group)
+        run: uv sync --frozen
+      - name: Run fast tests
+        run: uv run pytest -v
+
+  # OPT-IN: run the full E2E seed suite in CI. Requires:
+  #   - HF_TOKEN repo secret with access to Neuroencoder/epi-embedding
+  #   - The trajectory NPZ available to the runner (S3, LFS, or a job step
+  #     that fetches it from Drive using a rclone/gdrive token)
+  # Trigger manually from the Actions tab once the above are in place.
+  e2e-full:
+    name: e2e (full seed suite)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install Python 3.12
+        run: uv python install 3.12
+      - name: Install Supabase CLI
+        run: |
+          curl -sL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz \
+            | tar -xz -C /tmp
+          sudo mv /tmp/supabase /usr/local/bin/
+      - run: uv sync --frozen
+      - name: HF login (gated model access)
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: uv run hf auth login --token "$HF_TOKEN"
+      - name: Fetch trajectory NPZ
+        run: echo "TODO - fetch data/interp_trajectory_sub037_sub001.npz here"
+      - name: Start Supabase
+        run: supabase start
+      - name: Run E2E
+        run: npm run test:e2e

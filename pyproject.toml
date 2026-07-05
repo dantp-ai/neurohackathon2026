@@ -16,3 +16,16 @@ dependencies = [
     "supabase>=2.31.0",
     "umap-learn>=0.5.12",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["pipeline/tests", "backend/tests"]
+pythonpath = ["."]
+markers = [
+    "slow: real foundation-model / heavy tests. Skipped unless SLOW=1.",
+    "e2e: end-to-end tests that need Supabase + Docker running.",
+]
