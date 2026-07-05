@@ -1,0 +1,51 @@
+# Python ML pipeline image (controller + daemon + embedder).
+# Pairs with docker-compose.yml; the live demo runs as:
+#   docker compose up pipeline
+#
+# Notes:
+# - `data/` is intentionally NOT copied here. The 499 MB trajectory file is
+#   distributed out-of-band (Drive). The compose file bind-mounts the host's
+#   `./data` read-only into the container instead.
+# - The HuggingFace cache (gated `Neuroencoder/epi-embedding` weights + auth
+#   token) lives on a named volume so it survives container restarts and
+#   isn't baked into the image.
+
+FROM python:3.12-slim
+
+# Runtime libs: libgomp for numpy/scipy threading, libsndfile for some mne
+# format paths. curl is only needed for the uv installer below; we could
+# strip it after install but it's tiny.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      libgomp1 \
+      libsndfile1 \
+      ca-certificates \
+      curl \
+ && rm -rf /var/lib/apt/lists/*
+
+# uv (single static binary). Mirrors the host setup so we use the same
+# resolver against the same lockfile.
+ENV UV_INSTALL_DIR=/usr/local/bin
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+ && uv --version
+
+WORKDIR /app
+
+# Dep layer — only invalidated when pyproject.toml / uv.lock change.
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
+
+# Application code (small, fast to rebuild on edits).
+COPY pipeline/ ./pipeline/
+COPY backend/ ./backend/
+COPY scripts/ ./scripts/
+
+# Make `pipeline.*` and `backend.*` importable when modules are launched as
+# `-m pipeline.controller`. PYTHONUNBUFFERED ensures `print(...)` lands in the
+# container log immediately instead of being buffered until exit.
+ENV PYTHONPATH=/app \
+    PYTHONUNBUFFERED=1
+
+# Default = live streaming demo. Override per `docker compose run pipeline ...`
+# for one-off scripts (e.g. `uv run python -m pipeline.daemon --simulate ...`).
+CMD ["uv", "run", "python", "-m", "pipeline.controller"]

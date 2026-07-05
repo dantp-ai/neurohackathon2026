@@ -71,6 +71,42 @@ no manual IP).
 
 Browse the database at Supabase Studio: <http://127.0.0.1:54323>
 
+### Docker workflow (recommended)
+
+Run Python app in Docker. Supabase still runs host-side (via its own CLI); Expo still runs on host so Metro can talk to the simulator/device.
+
+**Once per machine**, log in to Hugging Face inside the container so the
+gated `Neuroencoder/epi-embedding` model weights + token are stored in the
+`hf-cache` named volume:
+
+```bash
+docker compose run --rm pipeline uv run hf auth login
+```
+
+Then with two commands we can cover the whole loop:
+
+| Command | When to use it |
+|---|---|
+| `npm run seed` | After `supabase db reset` (or on a fresh Supabase). Runs all three seed scripts (`seed_eeg` → `compute_umap` → `seed_trajectory`) inside the container against the host DB. |
+| `npm run demo` | Every time you want to run the demo. Starts host Supabase (idempotent), boots the streaming pipeline container, and launches Expo, in one terminal. Ctrl-C shuts down both gracefully. |
+
+The container reaches the host's Supabase via `host.docker.internal:54321`.
+First `demo` builds the image (~2 min) and downloads the foundation model
+weights once; subsequent runs start in seconds.
+
+**Seed scripts, in order:**
+- `scripts/seed_eeg.py` — creates demo patients (Margaret, Harold, Sofia) +
+  caregivers, and seeds `eeg_segments` derived from the real `sub-001`
+  recording through the foundation model.
+- `scripts/compute_umap.py` — fits UMAP on those embeddings and writes
+  `umap_x`/`umap_y` back per row (drives the caregiver **Map** tab).
+- `scripts/seed_trajectory.py` — seeds the 530-point healthy→dementia
+  trajectory into a "Trajectory Demo" patient. This is what powers
+  <http://localhost:8081/demo>; without it the Play button has nothing to
+  play.
+
+All three are idempotent & re-running replaces existing rows.
+
 ## How it's built
 
 - **App** — React Native + Expo (Expo Router), Skia (waveforms + maps), Reanimated + Gesture Handler, i18next (EN / 简体中文).

@@ -1,0 +1,35 @@
+# Local dev compose: brings up the Python ML pipeline against the host's
+# Supabase (which is itself orchestrated by the `supabase` CLI on the host).
+#
+# Quick start:
+#   supabase start                                          # host
+#   docker compose run --rm pipeline uv run hf auth login   # once, then enter token
+#   docker compose up pipeline                              # streams to Supabase
+
+services:
+  pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile.pipeline
+    image: neurohackathon-pipeline:dev
+    env_file:
+      - .env.local
+    environment:
+      # Inside the container, the host's Supabase is reachable via Docker
+      # Desktop's special DNS name. This overrides whatever URL is in
+      # .env.local (which usually points at 127.0.0.1 — fine for host, but
+      # would resolve to the container itself from inside).
+      EXPO_PUBLIC_SUPABASE_URL: http://host.docker.internal:54321
+    volumes:
+      # Persist gated HF weights + auth token across container restarts.
+      - hf-cache:/root/.cache/huggingface
+      # Host-distributed data files (incl. the 499 MB trajectory npz).
+      # Read-only because the pipeline never writes here.
+      - ./data:/app/data:ro
+    extra_hosts:
+      # On Linux, `host.docker.internal` isn't a native Docker Desktop name —
+      # this maps it to the host gateway so the URL above works there too.
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  hf-cache:
